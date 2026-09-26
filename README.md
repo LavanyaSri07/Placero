@@ -1,6 +1,7 @@
 # PLACERO
 <img src="./placero-logo.svg" alt="Placero Logo" width="900" />
-> **Prepare. Prove. Practice. Get Placement Ready.**
+
+**Prepare. Prove. Practice. Get Placement Ready.**
 
 PLACERO is a full-stack student placement preparation platform and career readiness operating system. Built specifically for college engineering students (Chemical, Mechanical, Electrical, ECE, CSE/IT...)
 
