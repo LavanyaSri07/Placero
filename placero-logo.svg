@@ -1,0 +1,81 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ringGrad" x1="270" y1="140" x2="965" y2="590" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4F5BFF"/>
+      <stop offset="0.55" stop-color="#5A6BFF"/>
+      <stop offset="1" stop-color="#0FB9D6"/>
+    </linearGradient>
+    <linearGradient id="capGrad" x1="500" y1="140" x2="736" y2="385" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#112C72"/>
+      <stop offset="1" stop-color="#0A1845"/>
+    </linearGradient>
+    <linearGradient id="bookGrad" x1="470" y1="430" x2="760" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5F5DEA"/>
+      <stop offset="1" stop-color="#1CCBEA"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="620" y1="770" x2="930" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#11B8D9"/>
+      <stop offset="1" stop-color="#73E6CC"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="220" y1="720" x2="980" y2="820" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A2B66"/>
+      <stop offset="0.45" stop-color="#1A4DB0"/>
+      <stop offset="1" stop-color="#18B7D6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0A1030" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="900" fill="#f2f2f2"/>
+
+  <g filter="url(#shadow)">
+    <circle cx="600" cy="315" r="265" fill="none" stroke="url(#ringGrad)" stroke-width="28" stroke-dasharray="1210 260" transform="rotate(-18 600 315)"/>
+    <circle cx="600" cy="316" r="260" fill="none" stroke="#D6EAF9" stroke-width="6" opacity="0.5"/>
+  </g>
+
+  <g>
+    <path d="M826 220L846 260L890 266L858 293L867 337L826 311L786 337L795 293L762 266L807 260L826 220Z" fill="#7EDCFF"/>
+    <path d="M826 216L838 248L874 254L845 279L853 314L826 295L799 314L807 279L778 254L814 248L826 216Z" fill="#0FBAD8" opacity="0.7"/>
+  </g>
+
+  <g>
+    <path d="M540 192L606 138L674 192H540Z" fill="url(#capGrad)"/>
+    <path d="M520 190L604 122L688 190H520Z" fill="none" stroke="#001F6B" stroke-width="8" opacity="0.2"/>
+    <path d="M590 120L610 124L632 170H573L590 120Z" fill="#2F73FF" opacity="0.7"/>
+    <path d="M506 193H702C714 193 724 202 724 214V241C724 252 715 261 704 261H506C494 261 485 252 485 241V214C485 202 494 193 506 193Z" fill="url(#capGrad)"/>
+    <path d="M536 250H668" stroke="#051C4B" stroke-width="8" stroke-linecap="round"/>
+    <path d="M620 194V226" stroke="#051C4B" stroke-width="8" stroke-linecap="round"/>
+    <rect x="603" y="261" width="41" height="52" rx="8" fill="#F7D66A"/>
+    <path d="M603 312L627 331L604 351L579 331L603 312Z" fill="#F7D66A"/>
+  </g>
+
+  <g>
+    <circle cx="600" cy="330" r="44" fill="#32CAFB"/>
+    <circle cx="600" cy="330" r="26" fill="#223B9A" opacity="0.88"/>
+    <path d="M600 287C563 287 536 319 536 355C536 374 543 393 557 406C512 419 481 451 474 516H726C719 451 688 419 643 406C657 393 664 374 664 355C664 319 637 287 600 287Z" fill="url(#bookGrad)" opacity="0.94"/>
+    <path d="M600 395C578 395 561 410 561 432V510H640V432C640 410 623 395 600 395Z" fill="#f2f2f2" opacity="0.9"/>
+    <path d="M582 432H618" stroke="#29C0E8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M582 465H618" stroke="#29C0E8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M531 428L486 522H568L580 469L531 428Z" fill="#5A69FF" opacity="0.82"/>
+    <path d="M669 428L712 522H634L624 469L669 428Z" fill="#19C8D3" opacity="0.85"/>
+  </g>
+
+  <g>
+    <path d="M425 468C485 462 544 466 598 510C555 538 521 583 508 634C474 607 447 569 427 524L425 468Z" fill="#5E5EF0" opacity="0.9"/>
+    <path d="M776 470C715 462 659 469 604 511C646 540 681 584 694 634C730 609 757 571 778 526L776 470Z" fill="#32C7D2" opacity="0.95"/>
+    <path d="M498 590L726 463" stroke="#BDEFF8" stroke-width="8" stroke-linecap="round" opacity="0.8"/>
+  </g>
+
+  <g>
+    <path d="M807 467C861 466 900 514 905 570C857 568 822 598 797 640C779 611 770 546 807 467Z" fill="url(#accentGrad)"/>
+    <path d="M780 607L920 537L885 573L971 617L916 640L835 664L780 607Z" fill="url(#accentGrad)"/>
+    <path d="M896 517L935 457L929 537L896 517Z" fill="#2CC9D8"/>
+  </g>
+
+  <g>
+    <path d="M787 292L809 266L840 286L820 315L787 292Z" fill="#0FBAD8" opacity="0.7"/>
+  </g>
+
+  <text x="600" y="800" text-anchor="middle" font-size="180" font-family="Segoe UI, Arial, sans-serif" font-weight="900" letter-spacing="2" fill="url(#textGrad)">PLACERO</text>
+</svg>

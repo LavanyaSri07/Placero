@@ -1,15 +1,15 @@
 # PLACERO
-![Placero Logo](downloads/placero-logo.png)
+<img src="./placero-logo.svg" alt="Placero Logo" width="900" />
 > **Prepare. Prove. Practice. Get Placement Ready.**
 
-PLACERO is a full-stack student placement preparation platform and career readiness operating system. Built specifically for college engineering students (Chemical, Mechanical, Electrical, ECE, CSE/IT, Civil, etc.), PLACERO replaces passive video lectures with a rigorous, evidence-driven standard: **"BUILD PROOF, NOT JUST CLAIMS."**
+PLACERO is a full-stack student placement preparation platform and career readiness operating system. Built specifically for college engineering students (Chemical, Mechanical, Electrical, ECE, CSE/IT...)
 
 ---
 
 ## 🌟 Key Features
 
 1. **Company War Room**:
-   - Deep-dive verified preparation intelligence for 14+ premier recruiters (Reliance Industries, Tata Motors, L&T, Siemens, Texas Instruments, Dow Chemicals, Caterpillar, Schneider Electric, Google, Qualcomm, ONGC, etc.).
+   - Deep-dive verified preparation intelligence for 14+ premier recruiters (Reliance Industries, Tata Motors, L&T, Siemens, Texas Instruments, Dow Chemicals, Caterpillar, Schneider Electric, Google, ...)
    - Verified audit date stamp (*"Information last verified: YYYY-MM-DD"*), official career portal links, and engineering blogs.
    - Skill Radars with benchmark meters, 4-Week Roadmaps, and campus interview viva questions.
 
@@ -143,3 +143,4 @@ PORT=3000
 
 ## 📜 License
 MIT
+
