@@ -95,8 +95,8 @@ export const CoreEngineerModeView: React.FC = () => {
               <span>Core Engineer Mode</span>
               <span className="text-sky-400">⚙️</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Real engineering calculations, code standards (ASME, ASTM, IS 456, API, IEEE), hydraulic NPSH solvers, and datasheet extraction. The cornerstone of technical campus interviews.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Branch-specific interactive engineering calculation engines and code standard decoders (Chemical, Mechanical, Electrical, ECE, Civil, and CS/IT). Practice real engineering problem solving—from centrifugal pump NPSH margin calculators and Fenske minimum distillation stage solvers to industrial datasheet telemetry—to demonstrate technical conviction during campus viva panels.
             </p>
           </div>
 

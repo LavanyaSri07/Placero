@@ -7,9 +7,11 @@ import {
   OverallReadiness,
   ProjectEvidence,
   MistakeRecord,
-  InterviewQuestion,
   DailyFeedCard,
   AlumniProfile,
+  RoadmapPlan,
+  RoadmapMilestone,
+  RegisterData,
 } from '../types/index.ts';
 
 interface AppContextType {
@@ -22,17 +24,20 @@ interface AppContextType {
   mistakes: MistakeRecord[];
   dailyFeed: DailyFeedCard[];
   alumniList: AlumniProfile[];
+  roadmap: RoadmapPlan | null;
   activeTab: string;
   searchQuery: string;
   isAIChatOpen: boolean;
   isOnboardingOpen: boolean;
   isPortfolioOpen: boolean;
+  isAuthModalOpen: boolean;
   isLoading: boolean;
   setActiveTab: (tab: string) => void;
   setSearchQuery: (query: string) => void;
   setIsAIChatOpen: (open: boolean) => void;
   setIsOnboardingOpen: (open: boolean) => void;
   setIsPortfolioOpen: (open: boolean) => void;
+  setIsAuthModalOpen: (open: boolean) => void;
   setSelectedCompany: (company: Company | null) => void;
   toggleMissionTask: (taskId: string) => Promise<void>;
   addProof: (proof: Partial<ProjectEvidence>) => Promise<ProjectEvidence>;
@@ -40,14 +45,23 @@ interface AppContextType {
   addMistake: (mistake: Partial<MistakeRecord>) => Promise<MistakeRecord>;
   deleteMistake: (id: string) => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  toggleRoadmapMilestone: (milestoneId: string) => Promise<void>;
+  updateRoadmapMilestones: (milestones: RoadmapMilestone[]) => Promise<void>;
+  generateTailoredRoadmap: (targetCompany?: string, branch?: string, totalWeeks?: number) => Promise<void>;
+  login: (credentials: { loginIdOrEmail: string; password?: string; isDemo?: boolean }) => Promise<{ success: boolean; message?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>;
+  logout: () => void;
   resetDemoUser: () => Promise<void>;
   triggerConfetti: () => void;
-  refreshData: () => Promise<void>;
+  refreshData: (overrideUserId?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [userId, setUserId] = useState<string>(() => {
+    return localStorage.getItem('placero_user_id') || 'user-demo-01';
+  });
   const [user, setUser] = useState<UserProfile | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -57,12 +71,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [mistakes, setMistakes] = useState<MistakeRecord[]>([]);
   const [dailyFeed, setDailyFeed] = useState<DailyFeedCard[]>([]);
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
+  const [roadmap, setRoadmap] = useState<RoadmapPlan | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAIChatOpen, setIsAIChatOpen] = useState<boolean>(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
   const [isPortfolioOpen, setIsPortfolioOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Common fetch helper with x-user-id header
+  const authFetch = (url: string, options: RequestInit = {}, activeId = userId) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-user-id': activeId,
+      ...(options.headers || {}),
+    };
+    return fetch(url, { ...options, headers });
+  };
 
   const triggerConfetti = () => {
     try {
@@ -73,110 +99,228 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         colors: ['#38bdf8', '#818cf8', '#34d399', '#f472b6', '#fbbf24'],
       });
     } catch (e) {
-      // ignore if unavailable
+      // ignore
     }
   };
 
-  const refreshData = async () => {
+  const refreshData = async (overrideUserId?: string) => {
+    const targetUserId = overrideUserId || userId;
     try {
       setIsLoading(true);
-      const [userRes, compRes, readRes, missRes, proofRes, mistRes, feedRes, alumRes] = await Promise.all([
-        fetch('/api/user/profile').then(r => r.json()),
-        fetch('/api/companies').then(r => r.json()),
-        fetch('/api/readiness').then(r => r.json()),
-        fetch('/api/missions/today').then(r => r.json()),
-        fetch('/api/proofs').then(r => r.json()),
-        fetch('/api/mistakes').then(r => r.json()),
-        fetch('/api/daily-feed').then(r => r.json()),
-        fetch('/api/alumni').then(r => r.json()),
+      const [userRes, compRes, readRes, missRes, proofRes, mistRes, feedRes, alumRes, roadRes] = await Promise.all([
+        authFetch('/api/user/profile', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/companies', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/readiness', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/missions/today', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/proofs', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/mistakes', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/daily-feed', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/alumni', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/roadmap', {}, targetUserId).then((r) => r.json()),
       ]);
 
       setUser(userRes);
       setCompanies(compRes);
-      if (compRes.length > 0 && !selectedCompany) {
+      if (compRes && compRes.length > 0 && !selectedCompany) {
         setSelectedCompany(compRes[0]);
       }
       setReadiness(readRes);
       setDailyMission(missRes);
-      setProofs(proofRes);
-      setMistakes(mistRes);
-      setDailyFeed(feedRes);
-      setAlumniList(alumRes);
+      setProofs(proofRes || []);
+      setMistakes(mistRes || []);
+      setDailyFeed(feedRes || []);
+      setAlumniList(alumRes || []);
+      setRoadmap(roadRes);
     } catch (err) {
-      console.error('Failed to load initial Placero data:', err);
+      console.error('Failed to load database records:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshData();
-  }, []);
+    refreshData(userId);
+  }, [userId]);
+
+  // Real Database Login
+  const login = async (credentials: { loginIdOrEmail: string; password?: string; isDemo?: boolean }) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loginId: credentials.loginIdOrEmail,
+          email: credentials.loginIdOrEmail,
+          password: credentials.password,
+          isDemo: credentials.isDemo,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.error || 'Invalid credentials' };
+      }
+
+      const activeUser: UserProfile = data.user;
+      setUser(activeUser);
+      setUserId(activeUser.id);
+      localStorage.setItem('placero_user_id', activeUser.id);
+      triggerConfetti();
+      await refreshData(activeUser.id);
+      setIsAuthModalOpen(false);
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Login failed' };
+    }
+  };
+
+  // Real Database Registration
+  const register = async (data: RegisterData) => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        return { success: false, message: result.error || 'Registration failed' };
+      }
+
+      const newUser: UserProfile = result.user;
+      setUser(newUser);
+      setUserId(newUser.id);
+      localStorage.setItem('placero_user_id', newUser.id);
+      triggerConfetti();
+      await refreshData(newUser.id);
+      setIsAuthModalOpen(false);
+      return { success: true, message: result.message };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Registration failed' };
+    }
+  };
+
+  const logout = () => {
+    // Switch to demo mode
+    setUserId('user-demo-01');
+    localStorage.removeItem('placero_user_id');
+    refreshData('user-demo-01');
+  };
 
   const toggleMissionTask = async (taskId: string) => {
     try {
-      const res = await fetch('/api/missions/toggle-task', {
+      const res = await authFetch('/api/missions/toggle-task', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskId }),
       });
       const data = await res.json();
       setDailyMission(data.mission);
       if (data.user) setUser(data.user);
 
-      // Check if all completed
-      if (data.mission.allCompleted) {
+      if (data.mission?.allCompleted) {
         triggerConfetti();
       }
 
-      // Re-fetch readiness score to reflect completed mission
-      const readRes = await fetch('/api/readiness').then(r => r.json());
+      // Re-fetch readiness score
+      const readRes = await authFetch('/api/readiness').then((r) => r.json());
       setReadiness(readRes);
     } catch (err) {
-      console.error('Error toggling mission task:', err);
+      console.error('Error toggling mission task in database:', err);
+    }
+  };
+
+  const toggleRoadmapMilestone = async (milestoneId: string) => {
+    try {
+      const res = await authFetch('/api/roadmap/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ milestoneId }),
+      });
+      const updated = await res.json();
+      setRoadmap(updated);
+
+      // Check if all completed or critical completed
+      const m = updated.milestones?.find((item: RoadmapMilestone) => item.id === milestoneId);
+      if (m && m.completed) {
+        triggerConfetti();
+      }
+
+      // Refresh readiness
+      const readRes = await authFetch('/api/readiness').then((r) => r.json());
+      setReadiness(readRes);
+    } catch (err) {
+      console.error('Error toggling milestone in database:', err);
+    }
+  };
+
+  const updateRoadmapMilestones = async (milestones: RoadmapMilestone[]) => {
+    try {
+      const res = await authFetch('/api/roadmap/milestones', {
+        method: 'POST',
+        body: JSON.stringify({ milestones }),
+      });
+      const updated = await res.json();
+      setRoadmap(updated);
+      triggerConfetti();
+    } catch (err) {
+      console.error('Error updating roadmap milestones in database:', err);
+    }
+  };
+
+  const generateTailoredRoadmap = async (targetCompany?: string, branch?: string, totalWeeks = 10) => {
+    try {
+      setIsLoading(true);
+      const res = await authFetch('/api/roadmap/generate', {
+        method: 'POST',
+        body: JSON.stringify({ targetCompany, branch, totalWeeks }),
+      });
+      const updated = await res.json();
+      setRoadmap(updated);
+      triggerConfetti();
+    } catch (err) {
+      console.error('Error generating tailored roadmap:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const addProof = async (proof: Partial<ProjectEvidence>): Promise<ProjectEvidence> => {
-    const res = await fetch('/api/proofs', {
+    const res = await authFetch('/api/proofs', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(proof),
     });
     const newProof = await res.json();
-    setProofs(prev => [newProof, ...prev]);
+    setProofs((prev) => [newProof, ...prev]);
     triggerConfetti();
     refreshData();
     return newProof;
   };
 
   const deleteProof = async (id: string) => {
-    await fetch(`/api/proofs/${id}`, { method: 'DELETE' });
-    setProofs(prev => prev.filter(p => p.id !== id));
+    await authFetch(`/api/proofs/${id}`, { method: 'DELETE' });
+    setProofs((prev) => prev.filter((p) => p.id !== id));
     refreshData();
   };
 
   const addMistake = async (mistake: Partial<MistakeRecord>): Promise<MistakeRecord> => {
-    const res = await fetch('/api/mistakes', {
+    const res = await authFetch('/api/mistakes', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(mistake),
     });
     const newMistake = await res.json();
-    setMistakes(prev => [newMistake, ...prev]);
+    setMistakes((prev) => [newMistake, ...prev]);
     refreshData();
     return newMistake;
   };
 
   const deleteMistake = async (id: string) => {
-    await fetch(`/api/mistakes/${id}`, { method: 'DELETE' });
-    setMistakes(prev => prev.filter(m => m.id !== id));
+    await authFetch(`/api/mistakes/${id}`, { method: 'DELETE' });
+    setMistakes((prev) => prev.filter((m) => m.id !== id));
   };
 
   const updateProfile = async (profileData: Partial<UserProfile>) => {
-    const res = await fetch('/api/user/profile', {
+    const res = await authFetch('/api/user/profile', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profileData),
     });
     const updated = await res.json();
@@ -185,12 +329,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const resetDemoUser = async () => {
+    setUserId('user-demo-01');
+    localStorage.removeItem('placero_user_id');
     const res = await fetch('/api/user/reset-demo', { method: 'POST' });
     const data = await res.json();
     if (data.user) {
       setUser(data.user);
       triggerConfetti();
-      await refreshData();
+      await refreshData('user-demo-01');
     }
   };
 
@@ -206,17 +352,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         mistakes,
         dailyFeed,
         alumniList,
+        roadmap,
         activeTab,
         searchQuery,
         isAIChatOpen,
         isOnboardingOpen,
         isPortfolioOpen,
+        isAuthModalOpen,
         isLoading,
         setActiveTab,
         setSearchQuery,
         setIsAIChatOpen,
         setIsOnboardingOpen,
         setIsPortfolioOpen,
+        setIsAuthModalOpen,
         setSelectedCompany,
         toggleMissionTask,
         addProof,
@@ -224,6 +373,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addMistake,
         deleteMistake,
         updateProfile,
+        toggleRoadmapMilestone,
+        updateRoadmapMilestones,
+        generateTailoredRoadmap,
+        login,
+        register,
+        logout,
         resetDemoUser,
         triggerConfetti,
         refreshData,

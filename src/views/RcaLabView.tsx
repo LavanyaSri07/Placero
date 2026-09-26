@@ -84,8 +84,8 @@ export const RcaLabView: React.FC = () => {
               <span>RCA & 5-Whys Simulator</span>
               <span>🔍</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Industrial interview panels love testing if you jump to conclusions or systematically trace failure chains. Practice 5 Whys and Fishbone logic on realistic engineering scenarios.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Diagnostic laboratory for Root Cause Analysis (RCA) and Failure Mode & Effects Analysis (FMEA). Test whether you leap to superficial blame or systematically uncover systemic root causes across mechanical, electrical, instrumentation, and operational breakdown scenarios evaluated by AI against industrial reliability standards.
             </p>
           </div>
 

@@ -84,8 +84,8 @@ export const AdminView: React.FC = () => {
               <span>Admin Management Panel</span>
               <ShieldCheck className="w-7 h-7 text-sky-400" />
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Verify campus recruitment guidelines, maintain accurate last-verified audit dates, and add new engineering recruiters without altering codebase files.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Placement coordination and system governance portal. Enables placement cell officers and administrators to register new hiring organizations, update and stamp verification dates on employer hiring stages, and manage custom technical assessment questions with real-time SQLite database persistence.
             </p>
           </div>
 

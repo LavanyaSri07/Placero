@@ -4,6 +4,7 @@ import { Header } from './components/Header.tsx';
 import { Sidebar } from './components/Sidebar.tsx';
 import { MobileNav } from './components/MobileNav.tsx';
 import { DashboardView } from './views/DashboardView.tsx';
+import { RoadmapView } from './views/RoadmapView.tsx';
 import { CompanyWarRoomView } from './views/CompanyWarRoomView.tsx';
 import { ProofLabView } from './views/ProofLabView.tsx';
 import { MockInterviewView } from './views/MockInterviewView.tsx';
@@ -17,6 +18,7 @@ import { AdminView } from './views/AdminView.tsx';
 import { OnboardingModal } from './components/OnboardingModal.tsx';
 import { AIChatDrawer } from './components/AIChatDrawer.tsx';
 import { PublicPortfolioModal } from './components/PublicPortfolioModal.tsx';
+import { AuthModal } from './components/AuthModal.tsx';
 
 const AppContent: React.FC = () => {
   const { activeTab, isLoading } = useApp();
@@ -25,6 +27,8 @@ const AppContent: React.FC = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView />;
+      case 'roadmap':
+        return <RoadmapView />;
       case 'companies':
         return <CompanyWarRoomView />;
       case 'proof-lab':
@@ -77,6 +81,7 @@ const AppContent: React.FC = () => {
       <OnboardingModal />
       <AIChatDrawer />
       <PublicPortfolioModal />
+      <AuthModal />
     </div>
   );
 };

@@ -22,6 +22,7 @@ export const ProofLabView: React.FC = () => {
 
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(proofs[0]?.id || null);
 
   // Form state
@@ -71,8 +72,9 @@ export const ProofLabView: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!title || !problemStatement || !quantifiableImpact) {
-      alert('Please fill out Project Title, Problem Statement, and Quantifiable Impact.');
+      setValidationError('Please fill out Project Title, Problem Statement, and Quantifiable Impact.');
       return;
     }
 
@@ -104,6 +106,7 @@ export const ProofLabView: React.FC = () => {
       setGithubUrl('');
       setLiveDemoUrl('');
       setCadOrSimulationNotes('');
+      setValidationError(null);
       setIsCreating(false);
     } catch (err) {
       console.error('Error adding proof:', err);
@@ -124,11 +127,11 @@ export const ProofLabView: React.FC = () => {
               <span>Recruiter Verification Standard</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              <span>Proof Lab</span>
+              <span>Proof Lab & BOM Cost Engine</span>
               <span className="text-emerald-400">🛡️</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              <strong className="text-white">"BUILD PROOF, NOT JUST CLAIMS."</strong> Transform academic projects into rigorous engineering case studies with boundary conditions, code/CAD links, Bill of Materials (BOM), and quantifiable results.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Built on the philosophy <em>"BUILD PROOF, NOT JUST CLAIMS."</em> This workspace converts resume claims into rigorous engineering case studies. Document problem statements, governing equations, CAD/simulation repositories, interactive Bills of Materials (BOM) with unit costs, and quantifiable operational results saved directly to the database and evaluated by AI.
             </p>
           </div>
 
@@ -140,6 +143,13 @@ export const ProofLabView: React.FC = () => {
             <span>{isCreating ? 'Close Creator' : 'Add New Proof Project'}</span>
           </button>
         </div>
+
+        {validationError && (
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center gap-2 text-xs text-rose-300">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
 
         {/* Core Differentiation Banner */}
         <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center gap-2 text-xs text-slate-400">

@@ -53,8 +53,8 @@ export const CompanyWarRoomView: React.FC = () => {
               <span>Company War Room</span>
               <span className="text-2xl">{company?.logo}</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-              Targeted engineering intelligence, skill radars, hiring stages, and official career links. Master company-specific expectations instead of generic preparation.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Detailed recruiting intelligence for 14+ premier recruiters (e.g. Reliance, Tata Motors, L&T, Siemens, Texas Instruments). Explore required skill radars, verified multi-stage hiring assessments, technical viva focus areas, official career links, and company-specific reverse audit prompts to target interviews with precision.
             </p>
           </div>
 

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import bcrypt from 'bcryptjs';
 import {
   SEED_COMPANIES,
   SEED_SKILLS,
@@ -24,148 +25,58 @@ import {
   OverallReadiness,
   Company,
   InterviewQuestion,
+  RoadmapPlan,
+  RoadmapMilestone,
 } from '../../src/types/index.ts';
+import {
+  getDb,
+  getUserById,
+  getUserByLoginId,
+  createUser,
+  updateUser,
+  getProofsByUserId,
+  insertProof,
+  deleteProofById,
+  getMistakesByUserId,
+  insertMistake,
+  deleteMistakeById,
+  getDailyMissionByUserId,
+  toggleMissionTaskDb,
+  getRoadmapByUserId,
+  toggleMilestoneDb,
+  updateRoadmapMilestonesDb,
+  getAllCompanies,
+  insertCompanyDb,
+  verifyCompanyDb,
+  persistDb,
+} from '../db/database.ts';
 
 export const apiRouter = Router();
 
-// In-memory persistent state (seeded with high quality defaults)
-let currentCompanies: Company[] = [...SEED_COMPANIES];
-let currentQuestions: InterviewQuestion[] = [...SEED_INTERVIEW_QUESTIONS];
-let currentUserProfile: UserProfile = { ...DEMO_USER_PROFILE };
+// Helper to determine the active user ID from request headers or default to demo user
+function getActiveUserId(req: Request): string {
+  const headerUserId = req.headers['x-user-id'] as string;
+  if (headerUserId && headerUserId.trim().length > 0) {
+    return headerUserId;
+  }
+  return DEMO_USER_PROFILE.id;
+}
 
-let userProjects: ProjectEvidence[] = [
-  {
-    id: 'proj-01',
-    title: 'Crude Preheat Train Pinch Analysis & Exchanger Optimization',
-    skill: 'Heat Transfer & Exchangers',
-    branch: 'Chemical Engineering',
-    problemStatement: 'High steam consumption in the atmospheric crude distillation preheat train due to sub-optimal heat exchanger network matching and heavy fouling.',
-    engineeringApproach: 'Applied Pinch Technology (Linnhoff March framework) with a minimum approach temperature (ΔT_min) of 15°C. Modeled stream enthalpy curves and re-routed hot residue streams.',
-    toolsUsed: ['Aspen Energy Analyzer', 'Python (NumPy / Matplotlib)', 'AutoCAD P&ID'],
-    technicalExplanation: 'Constructed Composite Curves and Grand Composite Curve (GCC). Identified cross-pinch heat transfer in E-103 and retrofitted two 1-2 shell-and-tube exchangers in counter-current configuration to eliminate pinch violation.',
-    quantifiableImpact: 'Calculated 14.2% reduction in furnace thermal duty (saving ~420 kg/hr fuel gas), reducing annual CO2 emissions by 1,180 metric tons.',
-    lessonsLearned: 'Pinch rules are strict—transferring heat across the pinch always doubles the penalty. Practical piping layout distance must be budgeted alongside thermodynamic optimality.',
-    githubUrl: 'https://github.com/placero-demo/crude-pinch-optimization',
-    liveDemoUrl: 'https://placero-demo.dev/crude-pinch-demo',
-    cadOrSimulationNotes: 'Aspen Plus V12 simulation files with heat curve exports.',
-    bomItems: [
-      { id: 'b1', component: 'Shell-and-Tube Exchanger (TEMA AES)', quantity: 2, unitCost: 450000, supplier: 'L&T Heavy Engineering', reasonSelected: 'High pressure rating and carbon steel corrosion resistance' },
-      { id: 'b2', component: 'High-Temperature Butterfly Control Valves', quantity: 4, unitCost: 65000, supplier: 'Emerson / Fisher', reasonSelected: 'Precision throttling for residue flow split' },
-    ],
-    evidenceScore: {
-      technicalDepth: 88,
-      practicality: 84,
-      documentation: 90,
-      quantifiableResults: 86,
-      reproducibility: 85,
-      overall: 87,
-      aiCritique: 'Exemplary engineering case study with clear composite curves, explicit ΔT_min justification, and verified greenhouse gas / fuel savings.',
-      suggestedEnhancement: 'Include tube-side pressure drop calculations to demonstrate the existing booster pump does not cavitate.',
-    },
-    createdAt: '2026-09-18',
-    isPublic: true,
-  },
-  {
-    id: 'proj-02',
-    title: 'Automated Continuous Stirred Tank Reactor (CSTR) Temperature Interlock',
-    skill: 'Process Safety & HAZOP',
-    branch: 'Chemical Engineering',
-    problemStatement: 'Exothermic jacketed batch reactor vulnerability to thermal runaway when coolant circulation pump fails.',
-    engineeringApproach: 'Designed a dual-redundant Safety Instrumented System (SIS) meeting SIL-2 criteria with emergency coolant dump tank and automated reactant feed cutoff valve.',
-    toolsUsed: ['MATLAB Simulink', 'HAZOP Worksheet', 'Arduino Prototyping Board'],
-    technicalExplanation: 'Formulated non-linear energy balance coupled with Arrhenius kinetics for sodium thiosulfate reaction. Implemented PID cascade control with rate-of-rise temperature trip logic.',
-    quantifiableImpact: 'Simulated 100% containment of thermal runaway in 45 tested pump-failure scenarios; response time reduced to 1.8 seconds.',
-    lessonsLearned: 'Safety instrumented functions must have independent sensor taps; sharing process measurement transmitters with safety interlocks violates IEC 61511.',
-    githubUrl: 'https://github.com/placero-demo/cstr-safety-interlock',
-    createdAt: '2026-09-22',
-    isPublic: true,
-  },
-];
+// Compute dynamic readiness score using user's real DB records
+async function computeReadinessScoreForUser(userId: string): Promise<OverallReadiness> {
+  const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
+  const mission = await getDailyMissionByUserId(userId);
+  const proofs = await getProofsByUserId(userId);
+  const mistakes = await getMistakesByUserId(userId);
 
-let userMistakes: MistakeRecord[] = [
-  {
-    id: 'mistake-01',
-    questionOrProblem: 'Centrifugal pump cavitation troubleshooting in refinery crude unit.',
-    studentAnswer: 'I said we should immediately throttle the suction valve to slow down liquid entering the impeller.',
-    whatWentWrong: 'Throttling the suction valve creates a massive localized pressure drop across the valve, severely reducing NPSH available and dramatically worsening cavitation!',
-    correctConcept: 'Always throttle the DISCHARGE valve to reduce flow rate (which moves pump operation to a lower NPSH_required point on the pump curve), never throttle the suction valve.',
-    improvedAnswer: 'I would verify suction pressure and fluid temperature against vapor pressure to check NPSH margin, inspect the suction strainer for clogging, and if flow must be modulated, throttle the discharge valve only.',
-    category: 'Core Concept',
-    branch: 'Chemical Engineering',
-    repeatStatus: 'Mastered Now',
-    dateLogged: '2026-09-23',
-  },
-  {
-    id: 'mistake-02',
-    questionOrProblem: 'Total reflux distillation operation in chemical plant.',
-    studentAnswer: 'Said operating at total reflux is the best method to run a plant because separation is highest.',
-    whatWentWrong: 'Forgot that at total reflux, distillate take-off is ZERO. You make zero product!',
-    correctConcept: 'Total reflux is a theoretical limit used to find minimum stages (Fenske equation). Commercial columns operate at 1.1x to 1.3x minimum reflux to balance operating steam costs with capital column height.',
-    improvedAnswer: 'Total reflux yields zero production rate. In commercial plants we operate at an optimal reflux ratio typically 10-30% above minimum reflux to minimize total lifecycle cost.',
-    category: 'Assumptions',
-    branch: 'Chemical Engineering',
-    repeatStatus: 'Repeated Once',
-    dateLogged: '2026-09-24',
-  },
-];
+  const completedTasks = mission.tasks.filter((t) => t.completed).length;
+  const missionScore = mission.tasks.length > 0 ? Math.round((completedTasks / mission.tasks.length) * 100) : 50;
+  const proofScore = Math.min(100, Math.max(30, proofs.length * 35));
+  const coreEngineeringScore = Math.min(95, 70 + (user.cgpa ? Math.round(user.cgpa * 2) : 10));
+  const interviewScore = Math.min(92, 60 + user.interviewConfidence * 4);
+  const consistencyScore = Math.min(100, (user.streakDays || 1) * 10 + (missionScore > 50 ? 20 : 0));
 
-let todayMission: DailyMission = {
-  id: 'mission-today',
-  date: new Date().toISOString().split('T')[0],
-  totalMinutes: 42,
-  allCompleted: false,
-  tasks: [
-    {
-      id: 'task-1',
-      title: 'Solve 5 Material Balance & Pump Sizing questions',
-      durationMinutes: 15,
-      category: 'practice',
-      completed: true,
-      xpReward: 100,
-    },
-    {
-      id: 'task-2',
-      title: 'Review Reliance Industries interview case study: Centrifugal Cavitation',
-      durationMinutes: 8,
-      category: 'case_study',
-      completed: true,
-      xpReward: 60,
-    },
-    {
-      id: 'task-3',
-      title: 'Record 1 STAR-L interview answer on Fluid Mechanics',
-      durationMinutes: 5,
-      category: 'voice_record',
-      completed: false,
-      xpReward: 120,
-    },
-    {
-      id: 'task-4',
-      title: 'Improve 1 resume bullet in Resume Bullet Lab',
-      durationMinutes: 5,
-      category: 'resume',
-      completed: false,
-      xpReward: 50,
-    },
-    {
-      id: 'task-5',
-      title: 'Review yesterday’s mistake: Throttling Suction vs Discharge',
-      durationMinutes: 4,
-      category: 'mistake_review',
-      completed: false,
-      xpReward: 40,
-    },
-  ],
-};
-
-// Calculate transparent multi-dimensional readiness score
-function computeReadinessScore(): OverallReadiness {
-  const assessmentScore = 78;
-  const missionScore = Math.round((todayMission.tasks.filter(t => t.completed).length / todayMission.tasks.length) * 100);
-  const proofScore = Math.min(100, userProjects.length * 40);
-  const interviewScore = 72;
-  const resumeScore = 80;
-  const coreEngineeringScore = 82;
+  const targetComp = user.targetCompanies?.[0] || 'Reliance Industries Limited';
 
   const dimensions = [
     {
@@ -174,7 +85,7 @@ function computeReadinessScore(): OverallReadiness {
       benchmark: 80,
       weight: 0.25,
       recentChange: +4,
-      explanation: 'Based on 82% accuracy in Material/Energy balances and Thermodynamics assessments.',
+      explanation: `Calculated from ${user.branch} core coursework and assessments (CGPA: ${user.cgpa || 8.0}).`,
     },
     {
       dimension: 'Proof of Execution & Projects',
@@ -182,7 +93,7 @@ function computeReadinessScore(): OverallReadiness {
       benchmark: 75,
       weight: 0.25,
       recentChange: +12,
-      explanation: `Calculated from ${userProjects.length} verified projects with simulation files, calculations, and quantifiable metrics.`,
+      explanation: `Derived from ${proofs.length} verified project proofs with calculations, CAD/simulation, and BOM data in SQLite database.`,
     },
     {
       dimension: 'Interview & STAR-L Communication',
@@ -190,266 +101,616 @@ function computeReadinessScore(): OverallReadiness {
       benchmark: 70,
       weight: 0.20,
       recentChange: +3,
-      explanation: 'Average score across mock interview attempts. Filler word rate improved to 4 per minute.',
+      explanation: `Based on interview confidence level (${user.interviewConfidence}/10) and voice mock interview drills.`,
     },
     {
-      dimension: 'Company-Specific Readiness (Reliance)',
-      score: 74,
+      dimension: `Target Recruiter Alignment (${targetComp.split(' ')[0]})`,
+      score: 76,
       benchmark: 80,
       weight: 0.15,
       recentChange: +5,
-      explanation: 'Preparation aligned with Jamnagar refinery technical areas (unit operations, pumps, safety).',
+      explanation: `Readiness mapped to typical assessment stages and technical criteria of ${targetComp}.`,
     },
     {
       dimension: 'Consistency & Daily Missions',
-      score: Math.min(100, currentUserProfile.streakDays * 12 + (missionScore > 50 ? 15 : 0)),
+      score: consistencyScore,
       benchmark: 85,
       weight: 0.15,
       recentChange: +7,
-      explanation: `Current streak of ${currentUserProfile.streakDays} days with active mission completions.`,
+      explanation: `Active streak of ${user.streakDays || 1} days with ${completedTasks}/${mission.tasks.length} tasks completed today.`,
     },
   ];
 
-  const totalScore = Math.round(
-    dimensions.reduce((acc, dim) => acc + dim.score * dim.weight, 0)
-  );
+  const totalScore = Math.round(dimensions.reduce((acc, dim) => acc + dim.score * dim.weight, 0));
 
   return {
     totalScore,
     dimensions,
-    weakestSkill: 'Industrial Process Safety & HAZOP',
-    strongestSkill: 'Thermodynamics & Heat Exchanger Pinch Analysis',
-    statusLabel: totalScore > 80 ? 'Interview Ready' : totalScore > 65 ? 'Building Foundation' : 'Needs Focus',
+    weakestSkill: mistakes.length > 0 ? mistakes[0].category : 'Industrial Process Safety & HAZOP',
+    strongestSkill: proofs.length > 0 ? proofs[0].skill : 'Thermodynamics & Heat Exchanger Pinch Analysis',
+    statusLabel: totalScore >= 80 ? 'Interview Ready' : totalScore >= 65 ? 'Building Foundation' : 'Needs Focus',
   };
 }
 
 // ==================== AUTH & PROFILE ROUTES ====================
 
-apiRouter.post('/auth/login', (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (email && email.toLowerCase().includes('demo')) {
-    currentUserProfile = { ...DEMO_USER_PROFILE };
+// Real Login with loginId / email and password
+apiRouter.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { loginId, email, password, isDemo } = req.body;
+    const identifier = (loginId || email || '').trim();
+
+    // 1-Click Demo Shortcut
+    if (isDemo || identifier === 'alex_student' || identifier.toLowerCase().includes('demo')) {
+      const demoUser = await getUserById(DEMO_USER_PROFILE.id);
+      if (demoUser) {
+        return res.json({
+          success: true,
+          user: demoUser,
+          token: demoUser.id,
+          message: 'Logged in as Demo Student',
+        });
+      }
+    }
+
+    if (!identifier) {
+      return res.status(400).json({ error: 'Please enter a Login ID or Email' });
+    }
+
+    const userRecord = await getUserByLoginId(identifier);
+    if (!userRecord) {
+      return res.status(401).json({ error: 'Account not found. Please check your Login ID or register a new account.' });
+    }
+
+    // Verify Password if provided
+    if (password && userRecord.password_hash) {
+      const valid = bcrypt.compareSync(password, userRecord.password_hash);
+      if (!valid) {
+        return res.status(401).json({ error: 'Invalid password. Please try again.' });
+      }
+    }
+
+    const userProfile = await getUserById(userRecord.id);
+    return res.json({
+      success: true,
+      user: userProfile,
+      token: userProfile!.id,
+      message: 'Login successful',
+    });
+  } catch (err: any) {
+    console.error('Login error:', err);
+    return res.status(500).json({ error: err.message || 'Login failed' });
   }
-  res.json({
-    user: currentUserProfile,
-    token: 'placero-auth-token-valid',
-  });
 });
 
-apiRouter.post('/auth/register', (req: Request, res: Response) => {
-  const { name, email, branch, college, degree } = req.body;
-  currentUserProfile = {
-    ...DEMO_USER_PROFILE,
-    id: `user-${Date.now()}`,
-    name: name || 'Student Candidate',
-    email: email || 'student@placero.edu',
-    branch: branch || 'Chemical Engineering',
-    college: college || 'Engineering College',
-    degree: degree || 'B.Tech',
-    streakDays: 1,
-    xp: 200,
-    level: 1,
-    isDemoUser: false,
-  };
-  res.json({ user: currentUserProfile, token: 'placero-auth-token-valid' });
+// Real Registration with SQLite database storage
+apiRouter.post('/auth/register', async (req: Request, res: Response) => {
+  try {
+    const { loginId, password, name, email, branch, college, degree, targetCompany } = req.body;
+
+    if (!loginId || !password || !name) {
+      return res.status(400).json({ error: 'Login ID, Password, and Full Name are required.' });
+    }
+
+    const cleanLoginId = loginId.trim().toLowerCase();
+    const cleanEmail = (email || `${cleanLoginId}@placero.student.edu`).trim().toLowerCase();
+
+    // Check existing
+    const existing = await getUserByLoginId(cleanLoginId);
+    if (existing) {
+      return res.status(400).json({ error: `Login ID "${cleanLoginId}" is already taken. Please choose another.` });
+    }
+
+    const newUser = await createUser({
+      loginId: cleanLoginId,
+      email: cleanEmail,
+      password,
+      name: name.trim(),
+      branch: branch || 'Chemical Engineering',
+      college: college || 'National Institute of Technology',
+      degree: degree || 'B.Tech',
+      targetCompany: targetCompany || 'Reliance Industries Limited',
+    });
+
+    return res.status(201).json({
+      success: true,
+      user: newUser,
+      token: newUser.id,
+      message: 'Registration successful! Your database account is ready.',
+    });
+  } catch (err: any) {
+    console.error('Register error:', err);
+    return res.status(500).json({ error: err.message || 'Registration failed' });
+  }
 });
 
-apiRouter.get('/auth/me', (req: Request, res: Response) => {
-  res.json({ user: currentUserProfile });
+apiRouter.get('/auth/me', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const user = await getUserById(userId);
+    res.json({ user: user || DEMO_USER_PROFILE });
+  } catch (err: any) {
+    res.json({ user: DEMO_USER_PROFILE });
+  }
 });
 
-apiRouter.get('/user/profile', (req: Request, res: Response) => {
-  res.json(currentUserProfile);
+apiRouter.get('/user/profile', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const user = await getUserById(userId);
+    res.json(user || DEMO_USER_PROFILE);
+  } catch (err: any) {
+    res.json(DEMO_USER_PROFILE);
+  }
 });
 
-apiRouter.post('/user/profile', (req: Request, res: Response) => {
-  currentUserProfile = { ...currentUserProfile, ...req.body };
-  res.json(currentUserProfile);
+apiRouter.post('/user/profile', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const updated = await updateUser(userId, req.body);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update profile' });
+  }
 });
 
-apiRouter.post('/user/reset-demo', (req: Request, res: Response) => {
-  currentUserProfile = { ...DEMO_USER_PROFILE };
-  res.json({ success: true, user: currentUserProfile });
+apiRouter.post('/user/reset-demo', async (_req: Request, res: Response) => {
+  try {
+    const user = await getUserById(DEMO_USER_PROFILE.id);
+    res.json({ success: true, user: user || DEMO_USER_PROFILE });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to reset demo' });
+  }
 });
 
 // ==================== READINESS & DASHBOARD ====================
 
-apiRouter.get('/readiness', (req: Request, res: Response) => {
-  const readiness = computeReadinessScore();
-  res.json(readiness);
+apiRouter.get('/readiness', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const readiness = await computeReadinessScoreForUser(userId);
+    res.json(readiness);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to compute readiness' });
+  }
 });
 
-apiRouter.get('/daily-feed', (req: Request, res: Response) => {
+apiRouter.get('/daily-feed', (_req: Request, res: Response) => {
   res.json(SEED_DAILY_FEED);
 });
 
 apiRouter.get('/alumni', (req: Request, res: Response) => {
   const branch = req.query.branch as string;
   if (branch) {
-    return res.json(SEED_ALUMNI.filter(a => a.branch.toLowerCase() === branch.toLowerCase()));
+    return res.json(SEED_ALUMNI.filter((a) => a.branch.toLowerCase() === branch.toLowerCase()));
   }
   res.json(SEED_ALUMNI);
 });
 
-// ==================== MISSIONS ====================
+// ==================== MISSIONS (DATABASE PERSISTENCE) ====================
 
-apiRouter.get('/missions/today', (req: Request, res: Response) => {
-  res.json(todayMission);
+apiRouter.get('/missions/today', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const mission = await getDailyMissionByUserId(userId);
+    res.json(mission);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load daily mission' });
+  }
 });
 
-apiRouter.post('/missions/toggle-task', (req: Request, res: Response) => {
-  const { taskId } = req.body;
-  const task = todayMission.tasks.find(t => t.id === taskId);
-  if (task) {
-    task.completed = !task.completed;
-    if (task.completed) {
-      currentUserProfile.xp += task.xpReward;
-      if (currentUserProfile.xp >= currentUserProfile.level * 500) {
-        currentUserProfile.level += 1;
-      }
+apiRouter.post('/missions/toggle-task', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { taskId } = req.body;
+    if (!taskId) return res.status(400).json({ error: 'taskId required' });
+
+    const result = await toggleMissionTaskDb(userId, taskId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to toggle task' });
+  }
+});
+
+// ==================== ROADMAP (DEDICATED DATABASE ENDPOINTS) ====================
+
+apiRouter.get('/roadmap', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const roadmap = await getRoadmapByUserId(userId);
+    res.json(roadmap);
+  } catch (err: any) {
+    console.error('Roadmap fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch roadmap' });
+  }
+});
+
+apiRouter.post('/roadmap/toggle', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { milestoneId } = req.body;
+    if (!milestoneId) return res.status(400).json({ error: 'milestoneId is required' });
+
+    const updated = await toggleMilestoneDb(userId, milestoneId);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to toggle milestone' });
+  }
+});
+
+apiRouter.post('/roadmap/milestones', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { milestones } = req.body;
+    if (!Array.isArray(milestones)) {
+      return res.status(400).json({ error: 'milestones array is required' });
     }
+    const updated = await updateRoadmapMilestonesDb(userId, milestones);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update milestones' });
   }
-  todayMission.allCompleted = todayMission.tasks.every(t => t.completed);
-  res.json({ mission: todayMission, user: currentUserProfile });
 });
 
-// ==================== COMPANIES & SKILLS ====================
+apiRouter.post('/roadmap/generate', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { targetCompany, branch, totalWeeks } = req.body;
+    const user = await getUserById(userId);
 
-apiRouter.get('/companies', (req: Request, res: Response) => {
-  const branch = req.query.branch as string;
-  const category = req.query.category as string;
-  let results = currentCompanies;
+    const compName = targetCompany || user?.targetCompanies?.[0] || 'Reliance Industries Limited';
+    const branchName = branch || user?.branch || 'Chemical Engineering';
+    const weeks = totalWeeks || 10;
 
-  if (branch) {
-    results = results.filter(c =>
-      c.relevantBranches.some(b => b.toLowerCase().includes(branch.toLowerCase()))
-    );
+    // Build specialized milestone plan tailored to branch and company
+    const generatedMilestones: RoadmapMilestone[] = [
+      {
+        id: `gen-${Date.now()}-1`,
+        phase: 'T-90 Days (Foundations)',
+        weekNumber: 1,
+        title: `${branchName} Core Axioms & Boundary Conditions`,
+        category: 'Core Engineering',
+        description: `Deep review of governing conservation laws, thermodynamic boundaries, and foundational engineering formulas in ${branchName}.`,
+        deliverable: `Comprehensive derivation notebook with stated assumptions for standard ${branchName} viva questions.`,
+        recommendedTimeHours: 12,
+        completed: true,
+        priority: 'Critical',
+      },
+      {
+        id: `gen-${Date.now()}-2`,
+        phase: 'T-90 Days (Foundations)',
+        weekNumber: 2,
+        title: 'Quantitative Problem Solving & Numerical Precision',
+        category: 'Core Engineering',
+        description: `Solve 20 high-frequency technical calculation problems with zero calculator dependency; master order-of-magnitude estimation.`,
+        deliverable: `Scored problem set verified with physical sanity checks and dimensional consistency.`,
+        recommendedTimeHours: 14,
+        completed: true,
+        priority: 'High',
+      },
+      {
+        id: `gen-${Date.now()}-3`,
+        phase: 'T-60 Days (Core Mastery)',
+        weekNumber: 3,
+        title: `${compName} Primary Plant / Tech Architecture Deep Dive`,
+        category: 'Company Intelligence',
+        description: `Analyze ${compName}'s major business units, flagship facilities, engineering patents, and recently published technical whitepapers.`,
+        deliverable: `Structured 2-page intelligence briefing detailing ${compName}'s supply chain and engineering bottlenecks.`,
+        recommendedTimeHours: 10,
+        completed: false,
+        priority: 'Critical',
+      },
+      {
+        id: `gen-${Date.now()}-4`,
+        phase: 'T-60 Days (Core Mastery)',
+        weekNumber: 4,
+        title: 'Proof-of-Execution Project with Interactive BOM & Costing',
+        category: 'Proof Building',
+        description: `Author a complete technical case study demonstrating hands-on problem solving, CAD/simulation validation, and practical equipment costing.`,
+        deliverable: `Published Proof Lab project evaluated with >80 AI Evidence Score and downloadable calculation model.`,
+        recommendedTimeHours: 16,
+        completed: false,
+        priority: 'Critical',
+      },
+      {
+        id: `gen-${Date.now()}-5`,
+        phase: 'T-30 Days (Company Specifics)',
+        weekNumber: 5,
+        title: 'Reverse Process / System Audit for Target Operations',
+        category: 'Company Intelligence',
+        description: `Construct an operational reverse audit identifying potential bottlenecks, safety risks, and efficiency opportunities inside ${compName}.`,
+        deliverable: `Complete Reverse Audit proposal memo ready to present during technical interview rounds.`,
+        recommendedTimeHours: 12,
+        completed: false,
+        priority: 'High',
+      },
+      {
+        id: `gen-${Date.now()}-6`,
+        phase: 'T-30 Days (Company Specifics)',
+        weekNumber: 6,
+        title: 'Resume Bullet "So What?" Transformation',
+        category: 'Proof Building',
+        description: `Audit and rewrite every resume bullet using Action + Context + Quantifiable Result + Business Impact.`,
+        deliverable: `Clean, 1-page ATS-ready resume with quantified metrics and zero passive voice.`,
+        recommendedTimeHours: 8,
+        completed: false,
+        priority: 'High',
+      },
+      {
+        id: `gen-${Date.now()}-7`,
+        phase: 'T-14 Days (Mock Interrogation)',
+        weekNumber: 7,
+        title: 'Voice Mock Viva & High-Stress Technical Cross-Examination',
+        category: 'Mock Interviews',
+        description: `Practice answering high-speed technical viva queries under a countdown timer with filler word detection and STAR-L scoring.`,
+        deliverable: `Minimum 3 recorded voice mock interviews with speaking pace between 120-140 WPM and <3 filler words per minute.`,
+        recommendedTimeHours: 14,
+        completed: false,
+        priority: 'Critical',
+      },
+      {
+        id: `gen-${Date.now()}-8`,
+        phase: 'T-7 Days (Fine Tuning)',
+        weekNumber: 8,
+        title: 'Mistake Vault Audit & Failure Pattern Elimination',
+        category: 'Core Engineering',
+        description: `Systematically review all logged viva traps and past assessment failures to eliminate recurring conceptual errors.`,
+        deliverable: `100% mastery score across all flagged mistakes in the Mistake Vault.`,
+        recommendedTimeHours: 10,
+        completed: false,
+        priority: 'High',
+      },
+      {
+        id: `gen-${Date.now()}-9`,
+        phase: 'T-1 Day (Final Calm)',
+        weekNumber: 9,
+        title: '30-60-90 Day Onboarding Plan & Panel Inquiry Preparation',
+        category: 'Behavioral & STAR-L',
+        description: `Formulate a crisp 30-60-90 day execution plan and prepare 3 perceptive, insightful questions to ask the hiring panel.`,
+        deliverable: `Printed 1-page Graduate Engineer Trainee roadmap to hand to the interview panel.`,
+        recommendedTimeHours: 5,
+        completed: false,
+        priority: 'Medium',
+      },
+      {
+        id: `gen-${Date.now()}-10`,
+        phase: 'Interview Day (Execution)',
+        weekNumber: 10,
+        title: `Campus Placement Drive Execution: ${compName}`,
+        category: 'Mock Interviews',
+        description: `Execute with poise, thermodynamic/systemic conviction, stated assumptions, and verified proof evidence.`,
+        deliverable: `GET Placement Offer Letter secured!`,
+        recommendedTimeHours: 8,
+        completed: false,
+        priority: 'Critical',
+      },
+    ];
+
+    const updatedRoadmap = await updateRoadmapMilestonesDb(userId, generatedMilestones);
+    res.json(updatedRoadmap);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Roadmap generation failed' });
   }
-  if (category) {
-    results = results.filter(c => c.category.toLowerCase() === category.toLowerCase());
-  }
-
-  res.json(results);
 });
 
-apiRouter.get('/companies/:id', (req: Request, res: Response) => {
-  const company = currentCompanies.find(c => c.id === req.params.id);
-  if (!company) {
-    return res.status(404).json({ error: 'Company not found' });
+// ==================== COMPANIES & SKILLS (DATABASE PERSISTENCE) ====================
+
+apiRouter.get('/companies', async (req: Request, res: Response) => {
+  try {
+    const branch = req.query.branch as string;
+    const category = req.query.category as string;
+    let companies = await getAllCompanies();
+
+    if (companies.length === 0) {
+      companies = SEED_COMPANIES;
+    }
+
+    if (branch) {
+      companies = companies.filter((c) =>
+        c.relevantBranches.some((b) => b.toLowerCase().includes(branch.toLowerCase()))
+      );
+    }
+    if (category) {
+      companies = companies.filter((c) => c.category.toLowerCase() === category.toLowerCase());
+    }
+
+    res.json(companies);
+  } catch (err: any) {
+    res.json(SEED_COMPANIES);
   }
-  res.json(company);
+});
+
+apiRouter.get('/companies/:id', async (req: Request, res: Response) => {
+  try {
+    const companies = await getAllCompanies();
+    const company = companies.find((c) => c.id === req.params.id) || SEED_COMPANIES.find((c) => c.id === req.params.id);
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+    res.json(company);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Company lookup failed' });
+  }
 });
 
 apiRouter.get('/skills', (req: Request, res: Response) => {
   const branch = req.query.branch as string;
   if (branch) {
-    return res.json(SEED_SKILLS.filter(s => s.branch.toLowerCase().includes(branch.toLowerCase())));
+    return res.json(SEED_SKILLS.filter((s) => s.branch.toLowerCase() === branch.toLowerCase()));
   }
   res.json(SEED_SKILLS);
 });
 
-// ==================== INTERVIEW QUESTIONS ====================
+apiRouter.get('/questions', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const { companyId, branch, difficulty, category } = req.query;
 
-apiRouter.get('/questions', (req: Request, res: Response) => {
-  const { companyId, branch, difficulty, category } = req.query;
-  let results = currentQuestions;
+    const resDb = db.exec(`SELECT * FROM interview_questions;`);
+    let questions: InterviewQuestion[] = [];
 
-  if (companyId) {
-    results = results.filter(q => q.companyId === companyId);
-  }
-  if (branch) {
-    results = results.filter(q => !q.branch || q.branch.toLowerCase().includes((branch as string).toLowerCase()));
-  }
-  if (difficulty) {
-    results = results.filter(q => q.difficulty.toLowerCase() === (difficulty as string).toLowerCase());
-  }
-  if (category) {
-    results = results.filter(q => q.category.toLowerCase() === (category as string).toLowerCase());
-  }
+    if (resDb.length > 0 && resDb[0].values.length > 0) {
+      const cols = resDb[0].columns;
+      questions = resDb[0].values.map((row) => {
+        const o: any = {};
+        cols.forEach((col, i) => (o[col] = row[i]));
+        return {
+          id: o.id,
+          companyId: o.company_id,
+          companyName: o.company_name,
+          branch: o.branch,
+          skill: o.skill,
+          category: o.category,
+          difficulty: o.difficulty,
+          question: o.question,
+          contextOrScenario: o.context_or_scenario,
+          idealAnswerPoints: JSON.parse(o.ideal_answer_points_json || '[]'),
+          commonMistakes: JSON.parse(o.common_mistakes_json || '[]'),
+          starGuide: JSON.parse(o.star_guide_json || '{}'),
+        };
+      });
+    }
 
-  res.json(results);
+    if (questions.length === 0) {
+      questions = SEED_INTERVIEW_QUESTIONS;
+    }
+
+    if (companyId) {
+      questions = questions.filter((q) => q.companyId === companyId);
+    }
+    if (branch) {
+      questions = questions.filter((q) => !q.branch || q.branch.toLowerCase().includes((branch as string).toLowerCase()));
+    }
+    if (difficulty) {
+      questions = questions.filter((q) => q.difficulty.toLowerCase() === (difficulty as string).toLowerCase());
+    }
+    if (category) {
+      questions = questions.filter((q) => q.category.toLowerCase() === (category as string).toLowerCase());
+    }
+
+    res.json(questions);
+  } catch (err: any) {
+    res.json(SEED_INTERVIEW_QUESTIONS);
+  }
 });
 
-// ==================== PROOF OF EXECUTION ====================
+// ==================== PROOF OF EXECUTION (DATABASE PERSISTENCE) ====================
 
-apiRouter.get('/proofs', (req: Request, res: Response) => {
-  res.json(userProjects);
+apiRouter.get('/proofs', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const proofs = await getProofsByUserId(userId);
+    res.json(proofs);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load proofs' });
+  }
 });
 
 apiRouter.post('/proofs', async (req: Request, res: Response) => {
-  const newProject: ProjectEvidence = {
-    id: `proj-${Date.now()}`,
-    ...req.body,
-    createdAt: new Date().toISOString().split('T')[0],
-    isPublic: true,
-  };
-
-  // Run AI evidence score evaluation automatically
   try {
-    const score = await evaluateProjectEvidence({
-      title: newProject.title,
-      skill: newProject.skill,
-      branch: newProject.branch,
-      problemStatement: newProject.problemStatement,
-      engineeringApproach: newProject.engineeringApproach,
-      toolsUsed: newProject.toolsUsed || [],
-      technicalExplanation: newProject.technicalExplanation,
-      quantifiableImpact: newProject.quantifiableImpact,
-      lessonsLearned: newProject.lessonsLearned,
-      hasBom: (newProject.bomItems && newProject.bomItems.length > 0) || false,
-      hasGithubOrCad: Boolean(newProject.githubUrl || newProject.cadOrSimulationNotes),
+    const userId = getActiveUserId(req);
+    const rawProof = req.body;
+
+    // Evaluate evidence score with Gemini or structured heuristics
+    let evidenceScore = rawProof.evidenceScore;
+    if (!evidenceScore) {
+      try {
+        evidenceScore = await evaluateProjectEvidence({
+          title: rawProof.title,
+          skill: rawProof.skill,
+          branch: rawProof.branch,
+          problemStatement: rawProof.problemStatement,
+          engineeringApproach: rawProof.engineeringApproach,
+          toolsUsed: rawProof.toolsUsed || [],
+          technicalExplanation: rawProof.technicalExplanation,
+          quantifiableImpact: rawProof.quantifiableImpact,
+          lessonsLearned: rawProof.lessonsLearned,
+          hasBom: Boolean(rawProof.bomItems && rawProof.bomItems.length > 0),
+          hasGithubOrCad: Boolean(rawProof.githubUrl || rawProof.cadOrSimulationNotes),
+        });
+      } catch (e) {
+        console.warn('Fallback evidence score used');
+      }
+    }
+
+    const inserted = await insertProof(userId, {
+      ...rawProof,
+      evidenceScore,
     });
-    newProject.evidenceScore = score;
-  } catch (err) {
-    console.error('Evidence scoring fallback:', err);
+
+    // Award XP
+    const user = await getUserById(userId);
+    if (user) {
+      await updateUser(userId, { xp: user.xp + 150 });
+    }
+
+    res.json(inserted);
+  } catch (err: any) {
+    console.error('Proof insert error:', err);
+    res.status(500).json({ error: err.message || 'Failed to save project proof' });
   }
-
-  userProjects.unshift(newProject);
-  currentUserProfile.xp += 150;
-  res.json(newProject);
 });
 
-apiRouter.delete('/proofs/:id', (req: Request, res: Response) => {
-  userProjects = userProjects.filter(p => p.id !== req.params.id);
-  res.json({ success: true });
+apiRouter.delete('/proofs/:id', async (req: Request, res: Response) => {
+  try {
+    await deleteProofById(req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete proof' });
+  }
 });
 
-// ==================== MISTAKE VAULT ====================
+// ==================== MISTAKE VAULT (DATABASE PERSISTENCE) ====================
 
-apiRouter.get('/mistakes', (req: Request, res: Response) => {
-  res.json(userMistakes);
+apiRouter.get('/mistakes', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const mistakes = await getMistakesByUserId(userId);
+    res.json(mistakes);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load mistakes' });
+  }
 });
 
-apiRouter.post('/mistakes', (req: Request, res: Response) => {
-  const newMistake: MistakeRecord = {
-    id: `mistake-${Date.now()}`,
-    ...req.body,
-    dateLogged: new Date().toISOString().split('T')[0],
-  };
-  userMistakes.unshift(newMistake);
-  res.json(newMistake);
+apiRouter.post('/mistakes', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const inserted = await insertMistake(userId, req.body);
+    res.json(inserted);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to record mistake' });
+  }
 });
 
-apiRouter.delete('/mistakes/:id', (req: Request, res: Response) => {
-  userMistakes = userMistakes.filter(m => m.id !== req.params.id);
-  res.json({ success: true });
+apiRouter.delete('/mistakes/:id', async (req: Request, res: Response) => {
+  try {
+    await deleteMistakeById(req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete mistake' });
+  }
 });
 
 // ==================== AI CONTROLLERS (SERVER-SIDE GEMINI) ====================
 
 apiRouter.post('/ai/coach', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
     const { question } = req.body;
-    const readiness = computeReadinessScore();
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
+    const readiness = await computeReadinessScoreForUser(userId);
+    const proofs = await getProofsByUserId(userId);
+    const mistakes = await getMistakesByUserId(userId);
+
     const result = await askCareerCoach(question, {
-      name: currentUserProfile.name,
-      branch: currentUserProfile.branch,
-      cgpa: currentUserProfile.cgpa,
-      targetCompanies: currentUserProfile.targetCompanies,
+      name: user.name,
+      branch: user.branch,
+      cgpa: user.cgpa,
+      targetCompanies: user.targetCompanies,
       weakestSkill: readiness.weakestSkill,
       strongestSkill: readiness.strongestSkill,
-      recentMistakesCount: userMistakes.length,
-      proofCount: userProjects.length,
+      recentMistakesCount: mistakes.length,
+      proofCount: proofs.length,
     });
     res.json(result);
   } catch (err: any) {
@@ -459,11 +720,13 @@ apiRouter.post('/ai/coach', async (req: Request, res: Response) => {
 
 apiRouter.post('/ai/resume-bullet', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
     const { rawBullet, targetCompany } = req.body;
     if (!rawBullet) {
       return res.status(400).json({ error: 'rawBullet is required' });
     }
-    const result = await improveResumeBullet(rawBullet, currentUserProfile.branch, targetCompany);
+    const result = await improveResumeBullet(rawBullet, user.branch, targetCompany);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Resume AI evaluation failed' });
@@ -472,6 +735,8 @@ apiRouter.post('/ai/resume-bullet', async (req: Request, res: Response) => {
 
 apiRouter.post('/ai/interview-feedback', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
     const { question, transcript, category, targetCompany, durationSeconds } = req.body;
     if (!transcript) {
       return res.status(400).json({ error: 'transcript is required' });
@@ -481,16 +746,14 @@ apiRouter.post('/ai/interview-feedback', async (req: Request, res: Response) => 
     const fillerTokens = ['um', 'uh', 'like', 'actually', 'basically', 'you know', 'sort of', 'kind of'];
     const lower = transcript.toLowerCase();
     const fillerWordsFound = fillerTokens
-      .map(w => {
+      .map((w) => {
         const regex = new RegExp(`\\b${w}\\b`, 'gi');
         const matches = lower.match(regex);
         return { word: w, count: matches ? matches.length : 0 };
       })
-      .filter(item => item.count > 0);
+      .filter((item) => item.count > 0);
 
     const totalFillers = fillerWordsFound.reduce((acc, curr) => acc + curr.count, 0);
-
-    // Calculate words per minute
     const wordCount = transcript.trim().split(/\s+/).length;
     const safeDuration = durationSeconds && durationSeconds > 0 ? durationSeconds : 60;
     const speakingPaceWpm = Math.round((wordCount / safeDuration) * 60);
@@ -499,7 +762,7 @@ apiRouter.post('/ai/interview-feedback', async (req: Request, res: Response) => 
       question || 'Technical Problem Solving',
       transcript,
       category || 'Core Engineering',
-      currentUserProfile.branch,
+      user.branch,
       targetCompany
     );
 
@@ -517,10 +780,12 @@ apiRouter.post('/ai/interview-feedback', async (req: Request, res: Response) => 
 
 apiRouter.post('/ai/evidence-score', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
     const projectData = req.body;
     const evaluation = await evaluateProjectEvidence({
       ...projectData,
-      branch: currentUserProfile.branch,
+      branch: user.branch,
     });
     res.json(evaluation);
   } catch (err: any) {
@@ -530,11 +795,13 @@ apiRouter.post('/ai/evidence-score', async (req: Request, res: Response) => {
 
 apiRouter.post('/ai/plan-generator', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
     const { companyName, role } = req.body;
     const plan = await generate306090Plan(
       companyName || 'Reliance Industries Limited',
       role || 'Graduate Engineer Trainee',
-      currentUserProfile.branch
+      user.branch
     );
     res.json(plan);
   } catch (err: any) {
@@ -544,11 +811,13 @@ apiRouter.post('/ai/plan-generator', async (req: Request, res: Response) => {
 
 apiRouter.post('/ai/reverse-audit', async (req: Request, res: Response) => {
   try {
+    const userId = getActiveUserId(req);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
     const { companyName, productOrProcess } = req.body;
     const audit = await generateReverseAudit(
       companyName || 'Reliance Industries Limited',
       productOrProcess || 'Refinery Preheat Train & Pinch Exchangers',
-      currentUserProfile.branch
+      user.branch
     );
     res.json(audit);
   } catch (err: any) {
@@ -566,32 +835,60 @@ apiRouter.post('/ai/rca-evaluate', async (req: Request, res: Response) => {
   }
 });
 
-// ==================== ADMIN ENDPOINTS ====================
+// ==================== ADMIN ENDPOINTS (DATABASE PERSISTENCE) ====================
 
-apiRouter.post('/admin/company', (req: Request, res: Response) => {
-  const newCompany: Company = {
-    id: `company-${Date.now()}`,
-    ...req.body,
-    lastVerifiedDate: new Date().toISOString().split('T')[0],
-  };
-  currentCompanies.unshift(newCompany);
-  res.json(newCompany);
-});
-
-apiRouter.patch('/admin/company/:id/verify', (req: Request, res: Response) => {
-  const company = currentCompanies.find(c => c.id === req.params.id);
-  if (company) {
-    company.lastVerifiedDate = new Date().toISOString().split('T')[0];
-    return res.json(company);
+apiRouter.post('/admin/company', async (req: Request, res: Response) => {
+  try {
+    const created = await insertCompanyDb(req.body);
+    res.json(created);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to add company' });
   }
-  res.status(404).json({ error: 'Company not found' });
 });
 
-apiRouter.post('/admin/question', (req: Request, res: Response) => {
-  const newQ: InterviewQuestion = {
-    id: `q-${Date.now()}`,
-    ...req.body,
-  };
-  currentQuestions.unshift(newQ);
-  res.json(newQ);
+apiRouter.patch('/admin/company/:id/verify', async (req: Request, res: Response) => {
+  try {
+    const verified = await verifyCompanyDb(req.params.id);
+    if (!verified) return res.status(404).json({ error: 'Company not found' });
+    res.json(verified);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Verification update failed' });
+  }
+});
+
+apiRouter.post('/admin/question', async (req: Request, res: Response) => {
+  try {
+    const db = await getDb();
+    const id = `q-${Date.now()}`;
+    const q = req.body;
+
+    db.run(
+      `
+      INSERT INTO interview_questions (
+        id, company_id, company_name, branch, skill, category, difficulty,
+        question, context_or_scenario, ideal_answer_points_json,
+        common_mistakes_json, star_guide_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    `,
+      [
+        id,
+        q.companyId || null,
+        q.companyName || null,
+        q.branch || null,
+        q.skill || 'Core Technical',
+        q.category || 'Core Engineering',
+        q.difficulty || 'Medium',
+        q.question,
+        q.contextOrScenario || null,
+        JSON.stringify(q.idealAnswerPoints || []),
+        JSON.stringify(q.commonMistakes || []),
+        JSON.stringify(q.starGuide || {}),
+      ]
+    );
+
+    persistDb();
+    res.json({ id, ...q });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to insert question' });
+  }
 });

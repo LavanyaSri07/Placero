@@ -30,6 +30,7 @@ export const MockInterviewView: React.FC = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [transcript, setTranscript] = useState('');
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   // Attempts
   const [attempt1Result, setAttempt1Result] = useState<VoiceInterviewEvaluation | null>(null);
@@ -101,8 +102,9 @@ export const MockInterviewView: React.FC = () => {
   };
 
   const evaluateAnswer = async () => {
+    setValidationError(null);
     if (!transcript.trim()) {
-      alert('Please provide or record your answer transcript.');
+      setValidationError('Please provide or record your answer transcript before submitting for evaluation.');
       return;
     }
 
@@ -128,6 +130,7 @@ export const MockInterviewView: React.FC = () => {
         setAttempt2Result(evaluation);
         triggerConfetti();
       }
+      setValidationError(null);
     } catch (err) {
       console.error('Failed to evaluate interview answer:', err);
     } finally {
@@ -159,8 +162,8 @@ export const MockInterviewView: React.FC = () => {
               <span>Mock Interview Trainer</span>
               <span>🎤</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Real microphone voice recording, speaking pace (WPM), filler-word breakdown, and strict engineering STAR-L evaluation. Practice, receive critique, and compare Attempt 1 vs Attempt 2.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Realistic high-pressure voice mock viva simulator. Test your spoken technical articulation using your real microphone or pre-filled transcripts. The system detects filler words (e.g. <em>um, like, basically</em>), speaking pace in words-per-minute (WPM), and evaluates against the strict <strong>STAR-L (Situation, Task, Action, Result, Learning)</strong> framework with Attempt 1 vs Attempt 2 comparison.
             </p>
           </div>
 
@@ -171,6 +174,12 @@ export const MockInterviewView: React.FC = () => {
             </span>
           </div>
         </div>
+
+        {validationError && (
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
+            <span>{validationError}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Practice Console */}

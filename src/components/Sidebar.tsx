@@ -14,10 +14,14 @@ import {
   ShieldCheck,
   Flame,
   CheckCircle2,
+  Map,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, dailyMission, proofs, mistakes } = useApp();
+  const { activeTab, setActiveTab, dailyMission, proofs, mistakes, roadmap } = useApp();
+
+  const completedMilestones = roadmap?.milestones?.filter(m => m.completed).length || 0;
+  const totalMilestones = roadmap?.milestones?.length || 0;
 
   const navItems = [
     {
@@ -25,6 +29,13 @@ export const Sidebar: React.FC = () => {
       label: 'Dashboard',
       icon: LayoutDashboard,
       badge: dailyMission ? `${dailyMission.tasks.filter(t => t.completed).length}/${dailyMission.tasks.length}` : undefined,
+    },
+    {
+      id: 'roadmap',
+      label: 'Preparation Roadmap',
+      icon: Map,
+      badge: totalMilestones > 0 ? `${completedMilestones}/${totalMilestones}` : undefined,
+      subtitle: 'Week-by-Week Plan',
     },
     {
       id: 'companies',

@@ -54,8 +54,8 @@ export const DashboardView: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
               Good morning, {user?.name?.split(' ')[0] || 'Alex'} 👋
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-xl">
-              Your mission today: <span className="font-bold text-sky-300">42 minutes</span> of high-leverage preparation. Build proof, review failure patterns, and prove your engineering readiness.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Your central placement command cockpit. Monitors your real-time multi-dimensional readiness score across 5 key pillars, guides today's 42-minute high-yield preparation mission, and tracks your daily consistency streak. Check off tasks below to earn XP and save progress directly to SQLite.
             </p>
           </div>
 

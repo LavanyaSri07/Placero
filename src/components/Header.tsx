@@ -10,6 +10,10 @@ import {
   RotateCcw,
   CheckCircle2,
   Compass,
+  User,
+  KeyRound,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -21,7 +25,9 @@ export const Header: React.FC = () => {
     setIsAIChatOpen,
     setIsOnboardingOpen,
     setIsPortfolioOpen,
+    setIsAuthModalOpen,
     resetDemoUser,
+    logout,
   } = useApp();
 
   return (
@@ -107,14 +113,31 @@ export const Header: React.FC = () => {
             <span>Lvl {user?.level || 4} ({user?.xp || 1450} XP)</span>
           </div>
 
+          {/* User Account / Login ID Badge */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              title="Click to sign in with Login ID & Password or create an account"
+              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-sky-400" />
+              <div className="text-left hidden sm:block">
+                <span className="text-[10px] text-slate-400 block leading-none">Login ID</span>
+                <span className="font-bold text-sky-300 text-xs">
+                  {user?.loginId || 'alex_student'}
+                </span>
+              </div>
+            </button>
+          </div>
+
           {/* Demo User Badge / Switcher */}
           <button
             onClick={resetDemoUser}
             title="Reset to Alex Student demo data (Chemical Engineering, Reliance prep)"
-            className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+            className="hidden sm:flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden sm:inline">Demo Mode</span>
+            <span>Demo Reset</span>
           </button>
 
           {/* Onboarding trigger */}

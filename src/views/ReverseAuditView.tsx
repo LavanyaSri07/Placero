@@ -102,8 +102,8 @@ export const ReverseAuditView: React.FC = () => {
               <span>Reverse Audit & 100-Day Plan</span>
               <span>📐</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Show interviewers you understand their actual plant, bottlenecks, and economics before your first day. Generate reverse audits and editable 30-60-90 / 100-day onboarding plans.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Reverse-engineer real industrial operations, unit workflows, and engineering bottlenecks for your target recruiter. Generate comprehensive process audit memos (with root cause analysis and trade-offs) and tailored 30-60-90-day onboarding roadmaps to prove you can deliver day-one value to hiring managers.
             </p>
           </div>
 

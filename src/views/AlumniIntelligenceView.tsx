@@ -48,8 +48,8 @@ ${user?.name || 'Alex'}`;
               <span>Alumni Intelligence</span>
               <span>🎓</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Real advice from engineers who cleared campus drives at Reliance, Tata Motors, and Siemens. Discover what actually surprised them in interviews and what skills mattered in their first six months.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Connects candidate preparation with on-ground campus placement reality. Review verified interviews and reflections from recent batch alumni at top employers (Reliance, Tata Motors, Siemens, L&T, Google), discover surprise questions from actual viva rooms, and generate tailored, polite LinkedIn outreach messages.
             </p>
           </div>
         </div>

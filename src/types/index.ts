@@ -14,6 +14,7 @@ export type UserRole = 'student' | 'admin';
 
 export interface UserProfile {
   id: string;
+  loginId?: string;
   name: string;
   email: string;
   role: UserRole;
@@ -265,3 +266,54 @@ export interface DailyFeedCard {
   actionText?: string;
   actionPayload?: string;
 }
+
+export type TimelinePhase =
+  | 'T-90 Days (Foundations)'
+  | 'T-60 Days (Core Mastery)'
+  | 'T-30 Days (Company Specifics)'
+  | 'T-14 Days (Mock Interrogation)'
+  | 'T-7 Days (Fine Tuning)'
+  | 'T-1 Day (Final Calm)'
+  | 'Interview Day (Execution)';
+
+export interface RoadmapMilestone {
+  id: string;
+  phase: TimelinePhase;
+  weekNumber: number;
+  title: string;
+  category: 'Core Engineering' | 'Company Intelligence' | 'Proof Building' | 'Mock Interviews' | 'Behavioral & STAR-L';
+  description: string;
+  deliverable: string;
+  recommendedTimeHours: number;
+  completed: boolean;
+  priority: 'Critical' | 'High' | 'Medium';
+}
+
+export interface RoadmapPlan {
+  id: string;
+  userId: string;
+  title: string;
+  targetCompany: string;
+  branch: EngineeringBranch;
+  totalWeeks: number;
+  milestones: RoadmapMilestone[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoginCredentials {
+  loginId: string;
+  password: string;
+}
+
+export interface RegisterData {
+  loginId: string;
+  password: string;
+  name: string;
+  email: string;
+  branch: EngineeringBranch;
+  college: string;
+  degree: string;
+  targetCompany?: string;
+}
+

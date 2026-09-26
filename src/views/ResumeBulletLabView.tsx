@@ -75,9 +75,8 @@ export const ResumeBulletLabView: React.FC = () => {
               <span>Resume Bullet Lab</span>
               <span>✍️</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Transform passive academic bullets into high-conviction engineering achievements. The engine enforces{' '}
-              <strong className="text-white">ACTION + CONTEXT + QUANTIFIABLE RESULT + BUSINESS IMPACT</strong>.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Transform generic, passive resume statements into quantified, high-conviction engineering deliverables. The engine applies the <strong>ACTION + CONTEXT + QUANTIFIABLE RESULT + BUSINESS IMPACT</strong> formula (Google XYZ framework), detects missing technical metrics, and generates 3 interview-tested variations ready for your placement resume.
             </p>
           </div>
 

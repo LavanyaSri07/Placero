@@ -22,11 +22,13 @@ export const MistakeVaultView: React.FC = () => {
   const [correctConcept, setCorrectConcept] = useState('');
   const [improvedAnswer, setImprovedAnswer] = useState('');
   const [category, setCategory] = useState<'Core Concept' | 'Assumptions' | 'Calculation' | 'Technical' | 'Communication'>('Assumptions');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     if (!questionOrProblem || !whatWentWrong || !correctConcept) {
-      alert('Please fill out the problem, what went wrong, and correct concept.');
+      setValidationError('Please fill out the problem, what went wrong, and correct concept.');
       return;
     }
 
@@ -46,6 +48,7 @@ export const MistakeVaultView: React.FC = () => {
     setWhatWentWrong('');
     setCorrectConcept('');
     setImprovedAnswer('');
+    setValidationError(null);
     setIsAdding(false);
   };
 
@@ -64,8 +67,8 @@ export const MistakeVaultView: React.FC = () => {
               <span>Mistake Vault</span>
               <span>🛡️</span>
             </h1>
-            <p className="text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
-              Every failed interview question, calculation trap, and skipped assumption recorded here becomes your anti-fragile edge. Track recurring patterns before your real campus placement drive.
+            <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
+              <strong>Webpage Objective:</strong> Your personal engineering failure pattern journal. Every viva trap question, unstated assumption error, or calculation misstep logged here is saved to SQLite, categorized by failure mode, and tracked until verified as <em>Mastered Now</em>. Eliminates repeat mistakes before you face company technical panels.
             </p>
           </div>
 
@@ -77,6 +80,13 @@ export const MistakeVaultView: React.FC = () => {
             <span>{isAdding ? 'Close Logger' : 'Log New Mistake'}</span>
           </button>
         </div>
+
+        {validationError && (
+          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
 
         {/* Top Recurring Pattern Alert */}
         <div className="mt-5 pt-4 border-t border-slate-800/80 p-3.5 rounded-xl bg-slate-950/60 border border-rose-500/20 flex items-start gap-3">

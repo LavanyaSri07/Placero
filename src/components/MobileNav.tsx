@@ -6,6 +6,7 @@ import {
   FolderGit2,
   Mic2,
   FileText,
+  Map,
   Menu,
 } from 'lucide-react';
 
@@ -14,10 +15,10 @@ export const MobileNav: React.FC = () => {
 
   const mobileTabs = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'roadmap', label: 'Roadmap', icon: Map },
     { id: 'companies', label: 'Companies', icon: Building2 },
     { id: 'proof-lab', label: 'Proof', icon: FolderGit2 },
     { id: 'mock-interview', label: 'Interview', icon: Mic2 },
-    { id: 'core-engineer', label: 'Core Lab', icon: FileText },
   ];
 
   return (
