@@ -1,0 +1,6 @@
+{
+  "name": "PLACERO - Placement OS & Career Readiness",
+  "description": "Prepare. Prove. Practice. Get Placement Ready. Comprehensive placement platform with AI coaching, company war rooms, proof-of-execution portfolios, mock interviews, and mistake tracking.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
