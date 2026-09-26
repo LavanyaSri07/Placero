@@ -15,13 +15,30 @@ import {
   Flame,
   CheckCircle2,
   Map,
+  Award,
+  Brain,
+  Sparkles,
+  BookOpen,
+  Code2,
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, dailyMission, proofs, mistakes, roadmap } = useApp();
+  const {
+    activeTab,
+    setActiveTab,
+    dailyMission,
+    proofs,
+    mistakes,
+    roadmap,
+    badges,
+    user,
+    setIsPersonalityModalOpen,
+  } = useApp();
 
   const completedMilestones = roadmap?.milestones?.filter(m => m.completed).length || 0;
   const totalMilestones = roadmap?.milestones?.length || 0;
+  const safeBadges = Array.isArray(badges) ? badges : [];
+  const unlockedBadges = safeBadges.filter(b => b.isUnlocked).length;
 
   const navItems = [
     {
@@ -31,11 +48,32 @@ export const Sidebar: React.FC = () => {
       badge: dailyMission ? `${dailyMission.tasks.filter(t => t.completed).length}/${dailyMission.tasks.length}` : undefined,
     },
     {
+      id: 'profile',
+      label: 'Profile & Badges',
+      icon: Award,
+      badge: unlockedBadges > 0 ? `${unlockedBadges} Badges` : undefined,
+      subtitle: 'Milestones & Vivas',
+    },
+    {
       id: 'roadmap',
       label: 'Preparation Roadmap',
       icon: Map,
       badge: totalMilestones > 0 ? `${completedMilestones}/${totalMilestones}` : undefined,
       subtitle: 'Week-by-Week Plan',
+    },
+    {
+      id: 'leetcode',
+      label: 'LeetCode Arena',
+      icon: Code2,
+      badge: 'Blind 75',
+      subtitle: 'DSA & Coding Sandbox',
+    },
+    {
+      id: 'flashcards',
+      label: 'Anki Flashcards',
+      icon: BookOpen,
+      badge: 'SRS Active',
+      subtitle: 'Spaced Repetition',
     },
     {
       id: 'companies',
@@ -154,15 +192,31 @@ export const Sidebar: React.FC = () => {
         })}
       </div>
 
-      {/* Bottom Motivational Footer */}
-      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40 m-2 rounded-xl">
-        <div className="flex items-center gap-2 mb-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          <span className="text-[11px] font-bold text-slate-300">Core Principle</span>
+      {/* Bottom Personality Alignment Card */}
+      <div className="p-3 border-t border-slate-800/80 bg-slate-950/40 m-2 rounded-xl space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <Brain className="w-3.5 h-3.5 text-indigo-400" />
+            <span className="text-[11px] font-bold text-slate-200">AI Alignment</span>
+          </div>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            {user?.personalityProfile ? 'Active' : 'Pending'}
+          </span>
         </div>
-        <p className="text-[11px] text-slate-400 italic leading-relaxed">
-          "Build proof, not just claims. Every major skill must eventually produce verifiable evidence."
+
+        <p className="text-[11px] text-slate-400 leading-tight">
+          {user?.personalityProfile?.primaryArchetype
+            ? user.personalityProfile.primaryArchetype.split('&')[0].trim()
+            : 'Align platform to your engineering problem-solving style.'}
         </p>
+
+        <button
+          onClick={() => setIsPersonalityModalOpen(true)}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold transition cursor-pointer"
+        >
+          <Sparkles className="w-3 h-3 text-indigo-400" />
+          <span>{user?.personalityProfile ? 'Re-align Diagnostic' : 'Take Personality Test'}</span>
+        </button>
       </div>
     </aside>
   );

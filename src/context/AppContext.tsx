@@ -12,6 +12,10 @@ import {
   RoadmapPlan,
   RoadmapMilestone,
   RegisterData,
+  Badge,
+  MockInterviewRecord,
+  LeetCodeProblem,
+  LeetCodeSubmissionResult,
 } from '../types/index.ts';
 
 interface AppContextType {
@@ -25,12 +29,24 @@ interface AppContextType {
   dailyFeed: DailyFeedCard[];
   alumniList: AlumniProfile[];
   roadmap: RoadmapPlan | null;
+  badges: Badge[];
+  mockInterviews: MockInterviewRecord[];
+  flashcards: any[];
+  studyNotes: any[];
+  leetcodeProblems: LeetCodeProblem[];
+  activeLeetcodeProblem: LeetCodeProblem | null;
+  setActiveLeetcodeProblem: (p: LeetCodeProblem | null) => void;
+  submitLeetCodeSolution: (problemId: string, data: { code: string; language: string; notes?: string }) => Promise<LeetCodeSubmissionResult | null>;
+  runLeetCodeCode: (problemId: string, code: string, language: string, customInput?: string) => Promise<any>;
+  saveLeetCodeNote: (problemId: string, notes: string) => Promise<any>;
   activeTab: string;
   searchQuery: string;
   isAIChatOpen: boolean;
   isOnboardingOpen: boolean;
   isPortfolioOpen: boolean;
   isAuthModalOpen: boolean;
+  isPersonalityModalOpen: boolean;
+  theme: 'obsidian' | 'nordic' | 'editorial' | 'midnight';
   isLoading: boolean;
   setActiveTab: (tab: string) => void;
   setSearchQuery: (query: string) => void;
@@ -38,6 +54,8 @@ interface AppContextType {
   setIsOnboardingOpen: (open: boolean) => void;
   setIsPortfolioOpen: (open: boolean) => void;
   setIsAuthModalOpen: (open: boolean) => void;
+  setIsPersonalityModalOpen: (open: boolean) => void;
+  setTheme: (theme: 'obsidian' | 'nordic' | 'editorial' | 'midnight') => void;
   setSelectedCompany: (company: Company | null) => void;
   toggleMissionTask: (taskId: string) => Promise<void>;
   addProof: (proof: Partial<ProjectEvidence>) => Promise<ProjectEvidence>;
@@ -48,6 +66,13 @@ interface AppContextType {
   toggleRoadmapMilestone: (milestoneId: string) => Promise<void>;
   updateRoadmapMilestones: (milestones: RoadmapMilestone[]) => Promise<void>;
   generateTailoredRoadmap: (targetCompany?: string, branch?: string, totalWeeks?: number) => Promise<void>;
+  saveMockInterview: (data: any) => Promise<void>;
+  logStudySession: (minutes: number) => Promise<void>;
+  updateFlashcardMastery: (id: string, delta: number) => Promise<void>;
+  addFlashcard: (card: any) => Promise<void>;
+  saveStudyNote: (note: any) => Promise<void>;
+  deleteStudyNote: (id: string) => Promise<void>;
+  refreshBadges: () => Promise<void>;
   login: (credentials: { loginIdOrEmail: string; password?: string; isDemo?: boolean }) => Promise<{ success: boolean; message?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -72,13 +97,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [dailyFeed, setDailyFeed] = useState<DailyFeedCard[]>([]);
   const [alumniList, setAlumniList] = useState<AlumniProfile[]>([]);
   const [roadmap, setRoadmap] = useState<RoadmapPlan | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [mockInterviews, setMockInterviews] = useState<MockInterviewRecord[]>([]);
+  const [flashcards, setFlashcards] = useState<any[]>([]);
+  const [studyNotes, setStudyNotes] = useState<any[]>([]);
+  const [leetcodeProblems, setLeetcodeProblems] = useState<LeetCodeProblem[]>([]);
+  const [activeLeetcodeProblem, setActiveLeetcodeProblem] = useState<LeetCodeProblem | null>(null);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isAIChatOpen, setIsAIChatOpen] = useState<boolean>(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
   const [isPortfolioOpen, setIsPortfolioOpen] = useState<boolean>(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isPersonalityModalOpen, setIsPersonalityModalOpen] = useState<boolean>(false);
+  const [theme, setThemeState] = useState<'obsidian' | 'nordic' | 'editorial' | 'midnight'>(() => {
+    return (localStorage.getItem('placero_theme') as any) || 'obsidian';
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const setTheme = (newTheme: 'obsidian' | 'nordic' | 'editorial' | 'midnight') => {
+    setThemeState(newTheme);
+    localStorage.setItem('placero_theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    document.documentElement.classList.remove('theme-obsidian', 'theme-nordic', 'theme-editorial', 'theme-midnight');
+    document.documentElement.classList.add(`theme-${newTheme}`);
+  };
+
+  useEffect(() => {
+    setTheme(theme);
+  }, []);
 
   // Common fetch helper with x-user-id header
   const authFetch = (url: string, options: RequestInit = {}, activeId = userId) => {
@@ -103,11 +150,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshBadges = async (targetUserId?: string) => {
+    try {
+      const activeId = targetUserId || userId;
+      const res = await authFetch('/api/user/badges', {}, activeId);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setBadges(data);
+      }
+    } catch (err) {
+      console.error('Failed to load badges:', err);
+    }
+  };
+
   const refreshData = async (overrideUserId?: string) => {
     const targetUserId = overrideUserId || userId;
     try {
       setIsLoading(true);
-      const [userRes, compRes, readRes, missRes, proofRes, mistRes, feedRes, alumRes, roadRes] = await Promise.all([
+      const [
+        userRes,
+        compRes,
+        readRes,
+        missRes,
+        proofRes,
+        mistRes,
+        feedRes,
+        alumRes,
+        roadRes,
+        badgeRes,
+        mockRes,
+        cardRes,
+        noteRes,
+        lcRes,
+      ] = await Promise.all([
         authFetch('/api/user/profile', {}, targetUserId).then((r) => r.json()),
         authFetch('/api/companies', {}, targetUserId).then((r) => r.json()),
         authFetch('/api/readiness', {}, targetUserId).then((r) => r.json()),
@@ -117,6 +192,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         authFetch('/api/daily-feed', {}, targetUserId).then((r) => r.json()),
         authFetch('/api/alumni', {}, targetUserId).then((r) => r.json()),
         authFetch('/api/roadmap', {}, targetUserId).then((r) => r.json()),
+        authFetch('/api/user/badges', {}, targetUserId).then((r) => r.json()).catch(() => []),
+        authFetch('/api/user/mock-interviews', {}, targetUserId).then((r) => r.json()).catch(() => []),
+        authFetch('/api/study/flashcards', {}, targetUserId).then((r) => r.json()).catch(() => []),
+        authFetch('/api/study/notes', {}, targetUserId).then((r) => r.json()).catch(() => []),
+        authFetch('/api/leetcode/problems', {}, targetUserId).then((r) => r.json()).catch(() => []),
       ]);
 
       setUser(userRes);
@@ -131,6 +211,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDailyFeed(feedRes || []);
       setAlumniList(alumRes || []);
       setRoadmap(roadRes);
+      setBadges(Array.isArray(badgeRes) ? badgeRes : Array.isArray(userRes?.badges) ? userRes.badges : []);
+      setMockInterviews(Array.isArray(mockRes) ? mockRes : []);
+      setFlashcards(Array.isArray(cardRes) ? cardRes : []);
+      setStudyNotes(Array.isArray(noteRes) ? noteRes : []);
+      setLeetcodeProblems(Array.isArray(lcRes) ? lcRes : []);
     } catch (err) {
       console.error('Failed to load database records:', err);
     } finally {
@@ -318,6 +403,162 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMistakes((prev) => prev.filter((m) => m.id !== id));
   };
 
+  const saveMockInterview = async (data: any) => {
+    try {
+      const res = await authFetch('/api/user/mock-interviews', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.interview) {
+        setMockInterviews((prev) => [result.interview, ...prev]);
+      }
+      if (result.badges) {
+        setBadges(result.badges);
+      }
+      triggerConfetti();
+      refreshData();
+    } catch (err) {
+      console.error('Error saving mock interview:', err);
+    }
+  };
+
+  const logStudySession = async (minutes: number) => {
+    try {
+      const res = await authFetch('/api/study/log-session', {
+        method: 'POST',
+        body: JSON.stringify({ minutes }),
+      });
+      const data = await res.json();
+      if (data.user) setUser(data.user);
+      if (data.badges) setBadges(data.badges);
+      triggerConfetti();
+    } catch (err) {
+      console.error('Error logging study session:', err);
+    }
+  };
+
+  const updateFlashcardMastery = async (id: string, delta: number) => {
+    try {
+      await authFetch(`/api/study/flashcards/${id}/mastery`, {
+        method: 'POST',
+        body: JSON.stringify({ delta }),
+      });
+      setFlashcards((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, masteryLevel: Math.max(0, Math.min(5, (c.masteryLevel || 0) + delta)) } : c))
+      );
+    } catch (err) {
+      console.error('Error updating flashcard:', err);
+    }
+  };
+
+  const addFlashcard = async (card: any) => {
+    try {
+      const res = await authFetch('/api/study/flashcards', {
+        method: 'POST',
+        body: JSON.stringify(card),
+      });
+      const created = await res.json();
+      setFlashcards((prev) => [created, ...prev]);
+      triggerConfetti();
+    } catch (err) {
+      console.error('Error adding flashcard:', err);
+    }
+  };
+
+  const saveStudyNote = async (note: any) => {
+    try {
+      const res = await authFetch('/api/study/notes', {
+        method: 'POST',
+        body: JSON.stringify(note),
+      });
+      const saved = await res.json();
+      setStudyNotes((prev) => {
+        const idx = prev.findIndex((n) => n.id === saved.id);
+        if (idx >= 0) {
+          const next = [...prev];
+          next[idx] = saved;
+          return next;
+        }
+        return [saved, ...prev];
+      });
+    } catch (err) {
+      console.error('Error saving note:', err);
+    }
+  };
+
+  const deleteStudyNote = async (id: string) => {
+    try {
+      await authFetch(`/api/study/notes/${id}`, { method: 'DELETE' });
+      setStudyNotes((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      console.error('Error deleting note:', err);
+    }
+  };
+
+  const submitLeetCodeSolution = async (problemId: string, data: { code: string; language: string; notes?: string }) => {
+    try {
+      const res = await authFetch(`/api/leetcode/problems/${problemId}/submit`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      const result: LeetCodeSubmissionResult = await res.json();
+      if (result.status === 'Accepted') {
+        triggerConfetti();
+        setLeetcodeProblems((prev) =>
+          prev.map((p) =>
+            p.id === problemId
+              ? {
+                  ...p,
+                  solved: true,
+                  status: 'Solved',
+                  runtimeMs: result.runtimeMs,
+                  memoryMb: result.memoryMb,
+                  userCode: data.code,
+                  userLanguage: data.language,
+                  notes: data.notes || p.notes,
+                }
+              : p
+          )
+        );
+        if (result.badges && Array.isArray(result.badges)) {
+          setBadges(result.badges);
+        }
+        refreshData();
+      }
+      return result;
+    } catch (err) {
+      console.error('Failed to submit solution:', err);
+      return null;
+    }
+  };
+
+  const runLeetCodeCode = async (problemId: string, code: string, language: string, customInput?: string) => {
+    try {
+      const res = await authFetch(`/api/leetcode/problems/${problemId}/run`, {
+        method: 'POST',
+        body: JSON.stringify({ code, language, customInput }),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Execution error' };
+    }
+  };
+
+  const saveLeetCodeNote = async (problemId: string, notes: string) => {
+    try {
+      await authFetch(`/api/leetcode/problems/${problemId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+      });
+      setLeetcodeProblems((prev) =>
+        prev.map((p) => (p.id === problemId ? { ...p, notes } : p))
+      );
+    } catch (err) {
+      console.error('Failed to save LeetCode note:', err);
+    }
+  };
+
   const updateProfile = async (profileData: Partial<UserProfile>) => {
     const res = await authFetch('/api/user/profile', {
       method: 'POST',
@@ -325,6 +566,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     const updated = await res.json();
     setUser(updated);
+    if (updated.badges && Array.isArray(updated.badges)) setBadges(updated.badges);
     refreshData();
   };
 
@@ -353,12 +595,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         dailyFeed,
         alumniList,
         roadmap,
+        badges,
+        mockInterviews,
+        flashcards,
+        studyNotes,
+        leetcodeProblems,
+        activeLeetcodeProblem,
+        setActiveLeetcodeProblem,
+        submitLeetCodeSolution,
+        runLeetCodeCode,
+        saveLeetCodeNote,
         activeTab,
         searchQuery,
         isAIChatOpen,
         isOnboardingOpen,
         isPortfolioOpen,
         isAuthModalOpen,
+        isPersonalityModalOpen,
+        theme,
         isLoading,
         setActiveTab,
         setSearchQuery,
@@ -366,6 +620,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsOnboardingOpen,
         setIsPortfolioOpen,
         setIsAuthModalOpen,
+        setIsPersonalityModalOpen,
+        setTheme,
         setSelectedCompany,
         toggleMissionTask,
         addProof,
@@ -376,6 +632,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         toggleRoadmapMilestone,
         updateRoadmapMilestones,
         generateTailoredRoadmap,
+        saveMockInterview,
+        logStudySession,
+        updateFlashcardMastery,
+        addFlashcard,
+        saveStudyNote,
+        deleteStudyNote,
+        refreshBadges,
         login,
         register,
         logout,

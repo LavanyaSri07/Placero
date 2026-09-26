@@ -25,7 +25,7 @@ I recently documented a verified project on ${user?.currentSkills?.[0]?.name || 
 
 Thank you so much for your time and guidance!
 Warm regards,
-${user?.name || 'Alex'}`;
+${user?.name || user?.loginId || 'Engineering Candidate'}`;
 
   const copyMessage = () => {
     navigator.clipboard.writeText(outreachMessage);

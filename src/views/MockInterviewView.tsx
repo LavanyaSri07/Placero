@@ -14,6 +14,7 @@ import {
   ChevronRight,
   TrendingUp,
   FileText,
+  Brain,
 } from 'lucide-react';
 
 export const MockInterviewView: React.FC = () => {
@@ -186,6 +187,18 @@ export const MockInterviewView: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Interview Question & Audio Recorder (7 cols) */}
         <div className="lg:col-span-7 space-y-5">
+          {/* AI Personality Voice Coaching Callout */}
+          {user?.personalityProfile && (
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs">
+              <div className="flex items-center gap-2.5">
+                <Brain className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-slate-200">
+                  <strong className="text-indigo-300">Voice Coach Aligned ({user.personalityProfile.primaryArchetype.split('&')[0].trim()}):</strong> {user.personalityProfile.interviewVoiceStyle}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Question Box */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg space-y-3">
             <div className="flex items-center justify-between">

@@ -19,7 +19,7 @@ export const OnboardingModal: React.FC = () => {
   const totalSteps = 6;
 
   // Form states initialized with existing user or clean defaults
-  const [name, setName] = useState(user?.name || 'Alex Student');
+  const [name, setName] = useState(user?.name || '');
   const [college, setCollege] = useState(user?.college || 'National Institute of Technology');
   const [degree, setDegree] = useState(user?.degree || 'B.Tech');
   const [branch, setBranch] = useState<EngineeringBranch>(user?.branch || 'Chemical Engineering');

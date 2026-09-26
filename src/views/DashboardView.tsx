@@ -18,6 +18,10 @@ import {
   Mic,
   FolderGit2,
   FileEdit,
+  Brain,
+  Compass,
+  BookOpen,
+  Code2,
 } from 'lucide-react';
 
 export const DashboardView: React.FC = () => {
@@ -32,6 +36,8 @@ export const DashboardView: React.FC = () => {
     companies,
     setIsAIChatOpen,
     setIsOnboardingOpen,
+    setIsPersonalityModalOpen,
+    leetcodeProblems,
   } = useApp();
 
   const completedCount = dailyMission?.tasks.filter((t) => t.completed).length || 0;
@@ -52,7 +58,7 @@ export const DashboardView: React.FC = () => {
               <span>Target: {user?.targetCompanies?.[0] || 'Reliance Industries Limited'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Good morning, {user?.name?.split(' ')[0] || 'Alex'} 👋
+              Good morning, {user?.name ? user.name.split(' ')[0] : user?.loginId || 'Candidate'} 👋
             </h1>
             <p className="text-xs lg:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
               <strong>Webpage Objective:</strong> Your central placement command cockpit. Monitors your real-time multi-dimensional readiness score across 5 key pillars, guides today's 42-minute high-yield preparation mission, and tracks your daily consistency streak. Check off tasks below to earn XP and save progress directly to SQLite.
@@ -116,6 +122,233 @@ export const DashboardView: React.FC = () => {
             <div className="text-[10px] text-emerald-400 font-medium mt-1">85% benchmark beat</div>
           </div>
         </div>
+      </div>
+
+      {/* AI Engineering Personality & Platform Alignment Cockpit */}
+      {user?.personalityProfile ? (
+        <div className="p-5 lg:p-6 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/25 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950">
+                <Brain className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                    Platform Aligned
+                  </span>
+                  <span className="text-xs text-slate-400 font-medium">Cognitive Blueprint</span>
+                </div>
+                <h2 className="text-lg lg:text-xl font-extrabold text-white mt-1">
+                  {user.personalityProfile.primaryArchetype}
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => setIsPersonalityModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/30 text-xs font-bold transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Retake Diagnostic</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('profile')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition cursor-pointer"
+              >
+                <span>View Profile & Badges</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs lg:text-sm text-slate-300 italic leading-relaxed">
+            "{user.personalityProfile.tagline}"
+          </p>
+
+          {/* 4 Pillars of Platform Adaptation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400 mb-1">
+                <Target className="w-3.5 h-3.5" />
+                <span>Daily Mission Strategy</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                {user.personalityProfile.dailyStudyFormat}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 mb-1">
+                <Mic className="w-3.5 h-3.5" />
+                <span>Interview Voice Calibration</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                {user.personalityProfile.interviewVoiceStyle}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-400 mb-1">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Stress & Viva Response</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-snug">
+                {user.personalityProfile.stressResponse}
+              </p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400 mb-1">
+                <Building className="w-3.5 h-3.5" />
+                <span>Best Recruiter Culture Match</span>
+              </div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {user.personalityProfile.bestFitRecruiters?.slice(0, 3).map((r) => (
+                  <span
+                    key={r}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                  >
+                    {r.split(' ')[0]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Cognitive Dimension Scores */}
+          <div className="mt-4 pt-3 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                <span>Analytical</span>
+                <span className="text-sky-300 font-bold">{user.personalityProfile.scores?.analytical || 80}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div
+                  className="bg-sky-400 h-1.5 rounded-full"
+                  style={{ width: `${user.personalityProfile.scores?.analytical || 80}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                <span>Troubleshooting</span>
+                <span className="text-emerald-300 font-bold">{user.personalityProfile.scores?.practicalTroubleshooting || 90}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div
+                  className="bg-emerald-400 h-1.5 rounded-full"
+                  style={{ width: `${user.personalityProfile.scores?.practicalTroubleshooting || 90}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                <span>Systems Thinking</span>
+                <span className="text-indigo-300 font-bold">{user.personalityProfile.scores?.systemsThinking || 75}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div
+                  className="bg-indigo-400 h-1.5 rounded-full"
+                  style={{ width: `${user.personalityProfile.scores?.systemsThinking || 75}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                <span>Leadership</span>
+                <span className="text-amber-300 font-bold">{user.personalityProfile.scores?.leadershipAgility || 70}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div
+                  className="bg-amber-400 h-1.5 rounded-full"
+                  style={{ width: `${user.personalityProfile.scores?.leadershipAgility || 70}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-[10px] font-semibold text-slate-400">
+                <span>Communication</span>
+                <span className="text-pink-300 font-bold">{user.personalityProfile.scores?.communicationClarity || 85}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+                <div
+                  className="bg-pink-400 h-1.5 rounded-full"
+                  style={{ width: `${user.personalityProfile.scores?.communicationClarity || 85}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-5 lg:p-6 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-slate-900 to-indigo-950/40 border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center shrink-0">
+              <Brain className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-extrabold text-white">
+                Take the 8-Question Engineering Personality Diagnostic
+              </h2>
+              <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                Unlock full platform alignment! Uncover your cognitive archetype (The First-Principles Theorist, Root Cause Troubleshooter, Systems Architect, or Agile Operations Leader) to automatically customize your roadmap priorities, mock interview interrogation, and daily missions.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setIsPersonalityModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-400 hover:to-sky-400 text-white font-bold text-sm shadow-lg shadow-indigo-500/30 transition shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Begin Personality Test</span>
+          </button>
+        </div>
+      )}
+
+      {/* LeetCode & Coding Round Rapid Cockpit */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-lg relative overflow-hidden">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+            <Code2 className="w-5 h-5 text-amber-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-bold text-amber-300 tracking-wider uppercase">
+                Technical Coding Round Arena
+              </span>
+              <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                Blind 75 & Top 150
+              </span>
+              {leetcodeProblems.some((p) => p.solved) && (
+                <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  {leetcodeProblems.filter((p) => p.solved).length} Solved
+                </span>
+              )}
+            </div>
+            <h3 className="text-sm sm:text-base font-bold text-white mt-0.5">
+              Practice Standard DSA Algorithms & Core Engineering Signals
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Interactive split-view compiler supporting Python 3, JavaScript, C++, and Java with real-time testcase execution and Big-O verification.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('leetcode')}
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs transition shadow-md shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+        >
+          <span>Open Coding Arena</span>
+          <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
+        </button>
       </div>
 
       {/* Main Grid: Today's Mission & Readiness Breakdown */}

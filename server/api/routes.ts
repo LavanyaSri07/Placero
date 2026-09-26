@@ -49,6 +49,20 @@ import {
   insertCompanyDb,
   verifyCompanyDb,
   persistDb,
+  computeBadgesForUser,
+  getMockInterviewsByUserId,
+  insertMockInterview,
+  getFlashcardsByUserId,
+  updateFlashcardMastery,
+  insertFlashcard,
+  getStudyNotesByUserId,
+  saveStudyNote,
+  deleteStudyNote,
+  getLeetCodeProblems,
+  getLeetCodeProblemById,
+  runLeetCodeTest,
+  submitLeetCodeSolution,
+  saveLeetCodeNote,
 } from '../db/database.ts';
 
 export const apiRouter = Router();
@@ -237,8 +251,9 @@ apiRouter.get('/auth/me', async (req: Request, res: Response) => {
 apiRouter.get('/user/profile', async (req: Request, res: Response) => {
   try {
     const userId = getActiveUserId(req);
-    const user = await getUserById(userId);
-    res.json(user || DEMO_USER_PROFILE);
+    const user = (await getUserById(userId)) || DEMO_USER_PROFILE;
+    const badges = await computeBadgesForUser(userId);
+    res.json({ ...user, badges });
   } catch (err: any) {
     res.json(DEMO_USER_PROFILE);
   }
@@ -248,9 +263,204 @@ apiRouter.post('/user/profile', async (req: Request, res: Response) => {
   try {
     const userId = getActiveUserId(req);
     const updated = await updateUser(userId, req.body);
-    res.json(updated);
+    const badges = await computeBadgesForUser(userId);
+    res.json({ ...updated, badges });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update profile' });
+  }
+});
+
+// Badges endpoint
+apiRouter.get('/user/badges', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const badges = await computeBadgesForUser(userId);
+    res.json(Array.isArray(badges) ? badges : []);
+  } catch (err: any) {
+    console.error('Failed to compute badges:', err);
+    res.json([]);
+  }
+});
+
+// Mock interviews endpoints
+apiRouter.get('/user/mock-interviews', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const interviews = await getMockInterviewsByUserId(userId);
+    res.json(interviews);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to load mock interviews' });
+  }
+});
+
+apiRouter.post('/user/mock-interviews', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const interview = await insertMockInterview(userId, req.body);
+    const badges = await computeBadgesForUser(userId);
+    res.json({ interview, badges });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save mock interview' });
+  }
+});
+
+// Study Tools endpoints (Flashcards, Notes, Pomodoro Sessions)
+apiRouter.get('/study/flashcards', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const cards = await getFlashcardsByUserId(userId);
+    res.json(cards);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch flashcards' });
+  }
+});
+
+apiRouter.post('/study/flashcards', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const card = await insertFlashcard(userId, req.body);
+    res.json(card);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to create flashcard' });
+  }
+});
+
+apiRouter.post('/study/flashcards/:id/mastery', async (req: Request, res: Response) => {
+  try {
+    const delta = req.body.delta || 1;
+    await updateFlashcardMastery(req.params.id, delta);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to update flashcard' });
+  }
+});
+
+apiRouter.get('/study/notes', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const notes = await getStudyNotesByUserId(userId);
+    res.json(notes);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch study notes' });
+  }
+});
+
+apiRouter.post('/study/notes', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const note = await saveStudyNote(userId, req.body);
+    res.json(note);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to save study note' });
+  }
+});
+
+apiRouter.delete('/study/notes/:id', async (req: Request, res: Response) => {
+  try {
+    await deleteStudyNote(req.params.id);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to delete note' });
+  }
+});
+
+// ==================== LEETCODE ARENA ENDPOINTS ====================
+
+apiRouter.get('/leetcode/problems', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const problems = await getLeetCodeProblems(userId);
+    res.json(problems);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch LeetCode problems' });
+  }
+});
+
+apiRouter.get('/leetcode/problems/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const problem = await getLeetCodeProblemById(req.params.id, userId);
+    if (!problem) {
+      return res.status(404).json({ error: 'Problem not found' });
+    }
+    res.json(problem);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to fetch problem' });
+  }
+});
+
+apiRouter.post('/leetcode/problems/:id/run', async (req: Request, res: Response) => {
+  try {
+    const { code, language, customInput } = req.body;
+    const result = await runLeetCodeTest(req.params.id, code, language, customInput);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Code execution failed', message: err.message });
+  }
+});
+
+apiRouter.post('/leetcode/problems/:id/submit', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { code, language, notes } = req.body;
+    const result = await submitLeetCodeSolution(userId, req.params.id, { code, language, notes });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Solution submission failed', message: err.message });
+  }
+});
+
+apiRouter.post('/leetcode/problems/:id/notes', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { notes } = req.body;
+    const result = await saveLeetCodeNote(userId, req.params.id, notes);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to save notes' });
+  }
+});
+
+apiRouter.post('/study/log-session', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const { minutes } = req.body;
+    const safeMin = Number(minutes) || 25;
+    const user = await getUserById(userId);
+    if (user) {
+      const addedXp = Math.round(safeMin * 2);
+      await updateUser(userId, {
+        dailyStudyTimeMinutes: (user.dailyStudyTimeMinutes || 0) + safeMin,
+        xp: user.xp + addedXp,
+      });
+    }
+    const updatedUser = await getUserById(userId);
+    const badges = await computeBadgesForUser(userId);
+    res.json({ success: true, user: updatedUser, badges });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to log study session' });
+  }
+});
+
+apiRouter.post('/user/personality', async (req: Request, res: Response) => {
+  try {
+    const userId = getActiveUserId(req);
+    const personalityData = req.body;
+    const updated = await updateUser(userId, {
+      personalityProfile: {
+        ...personalityData,
+        completedAt: new Date().toISOString().split('T')[0],
+      },
+    });
+    // Award 200 XP for completing alignment diagnostic
+    if (updated) {
+      await updateUser(userId, { xp: (updated.xp || 1450) + 200 });
+    }
+    const finalUser = await getUserById(userId);
+    const badges = await computeBadgesForUser(userId);
+    res.json({ success: true, user: { ...finalUser, badges }, badges });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save personality assessment' });
   }
 });
 
@@ -766,12 +976,31 @@ apiRouter.post('/ai/interview-feedback', async (req: Request, res: Response) => 
       targetCompany
     );
 
+    // Save to SQLite database so performance badges update dynamically
+    const savedInterview = await insertMockInterview(userId, {
+      question: question || 'Technical Problem Solving',
+      category: category || 'Core Engineering',
+      targetCompany: targetCompany || 'Reliance Industries Limited',
+      durationSeconds: safeDuration,
+      speakingPaceWpm,
+      fillerWordCount: totalFillers,
+      overallScore: feedback.overallScore,
+      starScore: feedback.overallScore || 80,
+      attemptNumber: req.body.attemptNumber || 1,
+      transcript,
+      evaluation: feedback,
+    });
+
+    const updatedBadges = await computeBadgesForUser(userId);
+
     res.json({
       durationSeconds: safeDuration,
       speakingPaceWpm,
       fillerWordCount: totalFillers,
       fillerWordsFound,
       ...feedback,
+      savedInterviewId: savedInterview.id,
+      badges: updatedBadges,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Interview evaluation failed' });

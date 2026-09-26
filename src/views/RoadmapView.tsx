@@ -18,6 +18,7 @@ import {
   Layers,
   ChevronRight,
   ExternalLink,
+  Brain,
 } from 'lucide-react';
 import { RoadmapMilestone, TimelinePhase, EngineeringBranch } from '../types/index.ts';
 
@@ -198,6 +199,21 @@ export const RoadmapView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* AI Cognitive Alignment Notice */}
+      {user?.personalityProfile && (
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs">
+          <div className="flex items-center gap-2.5">
+            <Brain className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="text-slate-200">
+              <strong className="text-indigo-300">Cognitive Alignment Active:</strong> Roadmap milestone weightings and deliverables are aligned to <strong>{user.personalityProfile.primaryArchetype}</strong>.
+            </span>
+          </div>
+          <span className="text-[11px] text-indigo-300 font-semibold hidden md:inline">
+            Focus: {user.personalityProfile.problemSolvingStyle}
+          </span>
+        </div>
+      )}
 
       {/* Progress & Target Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

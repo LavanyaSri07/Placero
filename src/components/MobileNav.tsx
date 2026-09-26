@@ -7,7 +7,9 @@ import {
   Mic2,
   FileText,
   Map,
+  User,
   Menu,
+  Code2,
 } from 'lucide-react';
 
 export const MobileNav: React.FC = () => {
@@ -16,9 +18,9 @@ export const MobileNav: React.FC = () => {
   const mobileTabs = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'roadmap', label: 'Roadmap', icon: Map },
-    { id: 'companies', label: 'Companies', icon: Building2 },
-    { id: 'proof-lab', label: 'Proof', icon: FolderGit2 },
+    { id: 'leetcode', label: 'LeetCode', icon: Code2 },
     { id: 'mock-interview', label: 'Interview', icon: Mic2 },
+    { id: 'profile', label: 'Profile', icon: User },
   ];
 
   return (

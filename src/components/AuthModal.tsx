@@ -19,8 +19,8 @@ import {
 import { EngineeringBranch } from '../types/index.ts';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, user, login, register, resetDemoUser } = useApp();
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const { isAuthModalOpen, setIsAuthModalOpen, user, login, register, updateProfile, resetDemoUser, triggerConfetti } = useApp();
+  const [tab, setTab] = useState<'login' | 'register' | 'custom-name'>('login');
 
   // Login form state
   const [loginId, setLoginId] = useState('');
@@ -36,6 +36,11 @@ export const AuthModal: React.FC = () => {
   const [regCollege, setRegCollege] = useState('');
   const [regDegree, setRegDegree] = useState('B.Tech');
   const [regTargetCompany, setRegTargetCompany] = useState('Reliance Industries Limited');
+
+  // Quick Name state
+  const [customName, setCustomName] = useState(user?.name || '');
+  const [customLoginId, setCustomLoginId] = useState(user?.loginId || '');
+  const [customRole, setCustomRole] = useState(user?.preferredRole || 'Graduate Engineer Trainee');
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -99,6 +104,33 @@ export const AuthModal: React.FC = () => {
       } else {
         setSuccessMsg('Account created successfully in database!');
       }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCustomNameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!customName.trim()) {
+      setErrorMsg('Please enter your full name.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await updateProfile({
+        name: customName.trim(),
+        loginId: customLoginId.trim() || customName.trim().toLowerCase().replace(/\s+/g, '_'),
+        preferredRole: customRole.trim(),
+      });
+      setSuccessMsg(`Welcome, ${customName.trim()}! Your candidate name and profile have been updated and saved to SQLite.`);
+      triggerConfetti();
+      setTimeout(() => setIsAuthModalOpen(false), 900);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to update candidate profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +201,23 @@ export const AuthModal: React.FC = () => {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            Register New Student
+            Register Student
+          </button>
+          <button
+            onClick={() => {
+              setTab('custom-name');
+              setCustomName(user?.name || '');
+              setCustomLoginId(user?.loginId || '');
+              setErrorMsg(null);
+              setSuccessMsg(null);
+            }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
+              tab === 'custom-name'
+                ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+            }`}
+          >
+            Set Your Name
           </button>
         </div>
 

@@ -15,20 +15,30 @@ import { ReverseAuditView } from './views/ReverseAuditView.tsx';
 import { RcaLabView } from './views/RcaLabView.tsx';
 import { AlumniIntelligenceView } from './views/AlumniIntelligenceView.tsx';
 import { AdminView } from './views/AdminView.tsx';
+import { UserProfileView } from './views/UserProfileView.tsx';
+import { AnkiFlashcardsView } from './views/AnkiFlashcardsView.tsx';
+import { LeetCodeArenaView } from './views/LeetCodeArenaView.tsx';
 import { OnboardingModal } from './components/OnboardingModal.tsx';
 import { AIChatDrawer } from './components/AIChatDrawer.tsx';
 import { PublicPortfolioModal } from './components/PublicPortfolioModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
+import { PersonalityTestModal } from './components/PersonalityTestModal.tsx';
 
 const AppContent: React.FC = () => {
-  const { activeTab, isLoading } = useApp();
+  const { activeTab, isLoading, theme, isPersonalityModalOpen, setIsPersonalityModalOpen } = useApp();
 
   const renderActiveView = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardView />;
+      case 'profile':
+        return <UserProfileView />;
       case 'roadmap':
         return <RoadmapView />;
+      case 'leetcode':
+        return <LeetCodeArenaView />;
+      case 'flashcards':
+        return <AnkiFlashcardsView />;
       case 'companies':
         return <CompanyWarRoomView />;
       case 'proof-lab':
@@ -55,7 +65,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500/30 selection:text-sky-200">
+    <div className={`min-h-screen theme-${theme} flex flex-col transition-colors duration-200 selection:bg-sky-500/30 selection:text-sky-200`}>
       <Header />
 
       <div className="flex-1 flex max-w-7xl w-full mx-auto">
@@ -82,6 +92,10 @@ const AppContent: React.FC = () => {
       <AIChatDrawer />
       <PublicPortfolioModal />
       <AuthModal />
+      <PersonalityTestModal
+        isOpen={isPersonalityModalOpen}
+        onClose={() => setIsPersonalityModalOpen(false)}
+      />
     </div>
   );
 };

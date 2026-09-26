@@ -39,7 +39,28 @@ export interface UserProfile {
   xp: number;
   level: number;
   badges: Badge[];
+  personalityProfile?: StudentPersonality;
   isDemoUser?: boolean;
+}
+
+export interface StudentPersonality {
+  primaryArchetype: string;
+  tagline: string;
+  problemSolvingStyle: string;
+  workplacePreference: string;
+  stressResponse: string;
+  interviewVoiceStyle: string;
+  bestFitRecruiters: string[];
+  personalizedStrategy: string;
+  dailyStudyFormat: string;
+  completedAt?: string;
+  scores: {
+    analytical: number;
+    practicalTroubleshooting: number;
+    systemsThinking: number;
+    leadershipAgility: number;
+    communicationClarity: number;
+  };
 }
 
 export interface Badge {
@@ -48,7 +69,30 @@ export interface Badge {
   description: string;
   icon: string;
   unlockedAt?: string;
-  category: 'streak' | 'proof' | 'interview' | 'core' | 'assessment';
+  category: 'roadmap' | 'interview' | 'streak' | 'proof' | 'core' | 'assessment';
+  criteria?: string;
+  tier?: 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond';
+  progress?: number; // 0 - 100
+  progressText?: string; // e.g. "3 / 3 milestones completed"
+  isUnlocked?: boolean;
+  xpReward?: number;
+}
+
+export interface MockInterviewRecord {
+  id: string;
+  userId: string;
+  question: string;
+  category: string;
+  targetCompany: string;
+  durationSeconds: number;
+  speakingPaceWpm: number;
+  fillerWordCount: number;
+  overallScore: number;
+  starScore?: number;
+  attemptNumber: number;
+  transcript: string;
+  evaluation?: VoiceInterviewEvaluation;
+  createdAt: string;
 }
 
 export interface ReadinessDimension {
@@ -316,4 +360,94 @@ export interface RegisterData {
   degree: string;
   targetCompany?: string;
 }
+
+export type AnkiReviewRating = 'again' | 'hard' | 'good' | 'easy';
+
+export interface Flashcard {
+  id: string;
+  userId?: string;
+  branch: string;
+  topic: string;
+  frontQuestion: string;
+  backAnswer: string;
+  formula?: string;
+  masteryLevel: number; // 0 to 5
+  lastReviewed?: string;
+  nextReviewDate?: string;
+  intervalDays?: number;
+}
+
+export type LeetCodeDifficulty = 'Easy' | 'Medium' | 'Hard';
+
+export type LeetCodeCategory =
+  | 'Arrays & Hashing'
+  | 'Two Pointers'
+  | 'Sliding Window'
+  | 'Stack'
+  | 'Binary Search'
+  | 'Linked List'
+  | 'Trees & Graphs'
+  | 'Dynamic Programming'
+  | 'System Design'
+  | 'Core Engineering Algorithms';
+
+export interface LeetCodeExample {
+  input: string;
+  output: string;
+  explanation?: string;
+}
+
+export interface LeetCodeTestCase {
+  input: string;
+  expectedOutput: string;
+}
+
+export interface LeetCodeProblem {
+  id: string;
+  number: number;
+  title: string;
+  slug: string;
+  difficulty: LeetCodeDifficulty;
+  category: LeetCodeCategory;
+  tags: string[];
+  companies: string[];
+  acceptanceRate: string;
+  description: string;
+  examples: LeetCodeExample[];
+  constraints: string[];
+  starterCode: Record<string, string>;
+  solutionApproach?: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
+  hints?: string[];
+  sampleTestCases?: LeetCodeTestCase[];
+  solved?: boolean;
+  status?: 'Solved' | 'Attempted' | 'Todo';
+  userCode?: string;
+  userLanguage?: string;
+  runtimeMs?: number;
+  memoryMb?: number;
+  notes?: string;
+  lastSubmittedAt?: string;
+}
+
+export interface LeetCodeSubmissionResult {
+  status: 'Accepted' | 'Wrong Answer' | 'Time Limit Exceeded' | 'Runtime Error';
+  message: string;
+  runtimeMs: number;
+  runtimePercentile?: number;
+  memoryMb: number;
+  memoryPercentile?: number;
+  testCasesPassed: number;
+  totalTestCases: number;
+  failedCase?: {
+    input: string;
+    expected: string;
+    actual: string;
+  };
+  outputLogs?: string[];
+  xpEarned?: number;
+  badges?: Badge[];
+}
+
 
