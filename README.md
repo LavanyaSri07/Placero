@@ -1,4 +1,5 @@
 # PLACERO
+![Placero Logo](placero-logo.png)
 
 > **Prepare. Prove. Practice. Get Placement Ready.**
 
